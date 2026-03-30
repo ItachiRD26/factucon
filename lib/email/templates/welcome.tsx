@@ -36,7 +36,7 @@ export function WelcomeEmailTemplate({ companyName, ownerName, slug, codes }: We
 
         <div style="background:#060D1F;border:1px solid rgba(14,165,233,.2);border-radius:12px;padding:16px;margin-bottom:24px">
           <p style="color:#38BDF8;font-size:13px;font-weight:600;margin:0 0 6px">Tu URL del sistema:</p>
-          <a href="https://${slug}.https://factucon.vercel.app/" style="color:#0EA5E9;font-family:monospace;font-size:15px;text-decoration:none">https://${slug}.https://factucon.vercel.app/</a>
+          <a href="https://${slug}.factucon.vercel.app" style="color:#0EA5E9;font-family:monospace;font-size:15px;text-decoration:none">https://${slug}.factucon.vercel.app</a>
         </div>
 
         <h3 style="color:#F8FAFC;font-size:15px;margin:0 0 12px">Códigos de activación</h3>

@@ -85,7 +85,7 @@ export default function EmpresaDetailPage() {
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'rgba(255,255,255,.35)' }}>
-                {company.slug}.https://factucon.vercel.app/
+                {company.slug}.factucon.vercel.app
               </span>
               <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${statusColor}20`, color: statusColor }}>
                 ● {statusLabel}
@@ -94,7 +94,7 @@ export default function EmpresaDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a href={`https://${company.slug}.https://factucon.vercel.app/`} target="_blank" rel="noopener noreferrer"
+          <a href={`https://${company.slug}.factucon.vercel.app`} target="_blank" rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', fontWeight: 600, color: '#0EA5E9', padding: '8px 16px', borderRadius: 10, border: '1px solid rgba(14,165,233,.3)', background: 'rgba(14,165,233,.08)', textDecoration: 'none' }}>
             Abrir sistema ↗
           </a>

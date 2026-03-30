@@ -35,7 +35,7 @@ export type ModuleId =
   | 'accounts_receivable'
   | 'multi_warehouse';
 
-// ── Usuario (cuenta personal en https://factucon.vercel.app/) ─────────────────
+// ── Usuario (cuenta personal en factucon.vercel.app) ─────────────────
 export interface PortalUser {
   uid:         string;
   email:       string;
@@ -63,7 +63,7 @@ export interface Company {
   id:          string;
   ownerId:     string;       // uid del PortalUser
   name:        string;
-  slug:        string;       // subdominio: ferreteria → ferreteria.https://factucon.vercel.app/
+  slug:        string;       // subdominio: ferreteria → ferreteria.factucon.vercel.app
   rnc?:        string;
   phone?:      string;
   address?:    string;

@@ -70,7 +70,7 @@ export function Step5Pricing({ data, onBack }: Props) {
           <div style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tu empresa</div>
             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 3 }}>{data.name || '—'}</div>
-            <div style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: '#0EA5E9' }}>{data.slug}.https://factucon.vercel.app/</div>
+            <div style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: '#0EA5E9' }}>{data.slug}.factucon.vercel.app</div>
             {data.rnc && <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.35)', marginTop: 3 }}>RNC: {data.rnc}</div>}
           </div>
 
