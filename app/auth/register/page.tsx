@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const [busy,      setBusy]      = useState(false);
 
   useEffect(() => {
-    if (!loading && user) router.push('/dashboard');
+    if (!loading && user) router.push('/portal/dashboard');
   }, [user, loading, router]);
 
   async function handleRegister(e: React.FormEvent) {

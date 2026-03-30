@@ -55,7 +55,7 @@ export function CompanyCard({ company }: Props) {
                 {company.name}
               </div>
               <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.3)', marginTop: 3, fontFamily: 'monospace' }}>
-                {company.slug}.factucon.do
+                {company.slug}.https://factucon.vercel.app/
               </div>
             </div>
           </div>
@@ -137,7 +137,7 @@ export function CompanyCard({ company }: Props) {
           Gestionar →
         </Link>
         <a
-          href={`https://${company.slug}.factucon.do`}
+          href={`https://${company.slug}.https://factucon.vercel.app/`}
           target="_blank" rel="noopener noreferrer"
           style={{
             padding: '7px 12px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,

@@ -106,7 +106,7 @@ export default function HomePage() {
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FEBC2E' }}/>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#28C840' }}/>
                   <div style={{ flex: 1, margin: '0 10px', height: 22, borderRadius: 6, background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', padding: '0 10px', fontFamily: 'monospace', fontSize: '0.62rem', color: '#475569' }}>
-                    ferreteria.factucon.do/dashboard
+                    ferreteria.https://factucon.vercel.app//dashboard
                   </div>
                 </div>
                 {/* Content */}

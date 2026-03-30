@@ -11,7 +11,7 @@ function headers() {
 }
 
 export async function addSubdomain(slug: string): Promise<{ id: string; domain: string }> {
-  const domain = `${slug}.factucon.do`;
+  const domain = `${slug}.https://factucon.vercel.app/`;
   const teamId = process.env.VERCEL_TEAM_ID;
   const projectId = process.env.VERCEL_PROJECT_ID;
 
@@ -35,7 +35,7 @@ export async function addSubdomain(slug: string): Promise<{ id: string; domain: 
 }
 
 export async function removeSubdomain(slug: string): Promise<void> {
-  const domain    = `${slug}.factucon.do`;
+  const domain    = `${slug}.https://factucon.vercel.app/`;
   const teamId    = process.env.VERCEL_TEAM_ID;
   const projectId = process.env.VERCEL_PROJECT_ID;
 

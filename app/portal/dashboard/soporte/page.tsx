@@ -38,7 +38,7 @@ export default function SoportePage() {
             icon: '📧',
             title: 'Correo de soporte',
             text: 'Recibe ayuda con facturación, acceso, errores del sistema o configuración.',
-            action: 'soporte@factucon.do',
+            action: 'soporte@https://factucon.vercel.app/',
           },
           {
             icon: '💬',
