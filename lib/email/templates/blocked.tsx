@@ -11,7 +11,7 @@ export function BlockedEmailTemplate(companyName: string, reactivationFee: numbe
     <p style="color:#94A3B8;font-size:14px;line-height:1.7;margin:0 0 20px">
       Tus datos están seguros. Si llevas más de 30 días inactivo, se aplicará una tarifa de reactivación de <strong style="color:#F87171">RD$${reactivationFee}</strong>.
     </p>
-    <a href="https://factucon.vercel.app/portal/dashboard" style="display:inline-block;background:#EF4444;color:#fff;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none">
+    <a href="https://factucon.cfd/portal/dashboard" style="display:inline-block;background:#EF4444;color:#fff;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none">
       Reactivar sistema →
     </a>
   </div>
