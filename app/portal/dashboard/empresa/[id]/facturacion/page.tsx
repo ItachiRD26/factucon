@@ -55,7 +55,7 @@ export default function UsuariosPage() {
       {/* Instrucciones */}
       <div style={{ padding: '14px 18px', background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)', borderRadius: 12, marginBottom: 20, fontSize: '0.78rem', color: '#38BDF8', lineHeight: 1.7 }}>
         <strong>¿Cómo usar los códigos?</strong><br/>
-        1. Ve a <span style={{ fontFamily: 'monospace' }}>{company?.slug}.factucon.cfd</span> desde la PC que quieres activar<br/>
+        1. Ve a <span style={{ fontFamily: 'monospace' }}>{company?.slug}.facturacon.cfd</span> desde la PC que quieres activar<br/>
         2. Ingresa el código correspondiente a ese usuario<br/>
         3. El sistema cargará automáticamente con el rol y permisos asignados
       </div>

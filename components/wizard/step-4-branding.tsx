@@ -42,7 +42,7 @@ export function Step4Branding({ data, onUpdate, onNext, onBack }: Props) {
           />
           {data.slug && (
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.35)', marginTop: 5, fontFamily: 'monospace' }}>
-              Tu sistema: <span style={{ color: '#0EA5E9' }}>{data.slug}.factucon.cfd</span>
+              Tu sistema: <span style={{ color: '#0EA5E9' }}>{data.slug}.facturacon.cfd</span>
             </p>
           )}
         </div>

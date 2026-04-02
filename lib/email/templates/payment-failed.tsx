@@ -9,7 +9,7 @@ export function PaymentFailedEmailTemplate(companyName: string, daysLeft: number
       Tu suscripción de <strong style="color:#F8FAFC">${companyName}</strong> tiene un pago pendiente.<br>
       Tienes <strong style="color:#FCD34D">${daysLeft} día${daysLeft !== 1 ? 's' : ''}</strong> antes de que el sistema sea bloqueado.
     </p>
-    <a href="https://factucon.cfd/portal/dashboard" style="display:inline-block;background:#F59E0B;color:#fff;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none">
+    <a href="https://facturacon.cfd/portal/dashboard" style="display:inline-block;background:#F59E0B;color:#fff;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;text-decoration:none">
       Pagar ahora →
     </a>
   </div>
