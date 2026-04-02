@@ -38,6 +38,15 @@ async function clearSessionCookie(): Promise<void> {
   await fetch('/api/auth/session', { method: 'DELETE' });
 }
 
+// Genera un nombre legible a partir del email como fallback
+function nameFromEmail(email: string): string {
+  return email
+    .split('@')[0]
+    .replace(/[._\-]/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .trim() || 'Usuario';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,       setUser]       = useState<User | null>(null);
   const [portalUser, setPortalUser] = useState<PortalUser | null>(null);
@@ -63,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        // Primero cookie, luego datos — en paralelo
         await Promise.all([
           setSessionCookie(firebaseUser),
           loadPortalUser(firebaseUser.uid),
@@ -87,21 +95,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password);
-    // onAuthStateChanged se encarga de setear la cookie
   }
 
   async function loginGoogle() {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     const { uid, email, displayName } = result.user;
 
-    // Crear doc de usuario si es nuevo
+    // Prioridad: nombre de Google → nombre del email → 'Usuario'
+    const nameToUse = displayName?.trim() ||
+      (email ? nameFromEmail(email) : 'Usuario');
+
     const snap = await getDoc(doc(db, 'portal_users', uid));
     if (!snap.exists()) {
-      await createPortalUserDoc(uid, email!, displayName ?? 'Usuario');
+      await createPortalUserDoc(uid, email!, nameToUse);
     }
 
-    // Asegurar que la cookie esté lista ANTES de retornar
-    // (el onAuthStateChanged puede tardar — hacerlo explícito aquí también)
+    // Cookie explícita antes de retornar para evitar race condition
     await setSessionCookie(result.user);
   }
 
@@ -109,7 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
     await createPortalUserDoc(result.user.uid, email, name);
-    // Cookie se setea via onAuthStateChanged
   }
 
   async function logout() {
