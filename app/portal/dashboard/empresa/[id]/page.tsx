@@ -144,6 +144,7 @@ export default function EmpresaDetailPage() {
         {[
           ['🔑 Usuarios y códigos', `/portal/dashboard/empresa/${company.id}/usuarios`],
           ['💳 Facturación',        `/portal/dashboard/empresa/${company.id}/facturacion`],
+          ['📦 Productos', `/portal/dashboard/empresa/${company.id}/productos`],
         ].map(([label, href]) => (
           <Link key={href as string} href={href as string}
             style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,.7)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', textDecoration: 'none', transition: 'all .13s' }}>
