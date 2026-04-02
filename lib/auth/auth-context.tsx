@@ -25,6 +25,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+async function setSessionCookie(firebaseUser: User): Promise<void> {
+  const token = await firebaseUser.getIdToken();
+  await fetch('/api/auth/session', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ token }),
+  });
+}
+
+async function clearSessionCookie(): Promise<void> {
+  await fetch('/api/auth/session', { method: 'DELETE' });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,       setUser]       = useState<User | null>(null);
   const [portalUser, setPortalUser] = useState<PortalUser | null>(null);
@@ -46,25 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function setSessionCookie(firebaseUser: User) {
-    const token = await firebaseUser.getIdToken();
-    await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-  }
-
-  async function clearSessionCookie() {
-    await fetch('/api/auth/session', { method: 'DELETE' });
-  }
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        await loadPortalUser(firebaseUser.uid);
-        await setSessionCookie(firebaseUser);
+        // Primero cookie, luego datos — en paralelo
+        await Promise.all([
+          setSessionCookie(firebaseUser),
+          loadPortalUser(firebaseUser.uid),
+        ]);
       } else {
         setPortalUser(null);
         await clearSessionCookie();
@@ -84,25 +87,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged se encarga de setear la cookie
   }
 
   async function loginGoogle() {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     const { uid, email, displayName } = result.user;
+
+    // Crear doc de usuario si es nuevo
     const snap = await getDoc(doc(db, 'portal_users', uid));
     if (!snap.exists()) {
       await createPortalUserDoc(uid, email!, displayName ?? 'Usuario');
     }
+
+    // Asegurar que la cookie esté lista ANTES de retornar
+    // (el onAuthStateChanged puede tardar — hacerlo explícito aquí también)
+    await setSessionCookie(result.user);
   }
 
   async function register(email: string, password: string, name: string) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
     await createPortalUserDoc(result.user.uid, email, name);
+    // Cookie se setea via onAuthStateChanged
   }
 
   async function logout() {
-    await fetch('/api/auth/session', { method: 'DELETE' });
+    await clearSessionCookie();
     await signOut(auth);
     setPortalUser(null);
   }
