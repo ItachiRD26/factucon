@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
       actividadEconomica:        dgiiConfig?.actividadEconomica ?? '',
       certificacionConfirmadaAt: dgiiConfig?.certificacionConfirmadaAt ?? null,
     },
+    subscriptionStatus: (companySnap.data() as Company).subscription.status,
     certificacion: { casos, progreso },
     casosDisponibles: SET_PRUEBAS_DGII.map((c) => ({
       eNCF: c.eNCF, tipoECF: c.tipoECF, nombreItem: c.nombreItem, montoTotal: c.montoTotal,

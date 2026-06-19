@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       modules:   companyData.modules ?? [],
       companyName: companyData.name,
       primaryColor: companyData.primaryColor,
+      templateId: companyData.templateId ?? 'custom',
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()

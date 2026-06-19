@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
+import { TEMPLATES } from '@/lib/types';
 
 interface Warehouse {
   id: string; name: string; address: string;
@@ -14,6 +15,7 @@ interface WProduct {
 
 export default function AlmacenesPage() {
   const { session, loading } = useSistemaSession();
+  const template = TEMPLATES.find(t => t.id === session?.templateId) ?? TEMPLATES.find(t => t.id === 'custom')!;
   const [warehouses,  setWarehouses]  = useState<Warehouse[]>([]);
   const [selected,    setSelected]    = useState<string | null>(null);
   const [products,    setProducts]    = useState<WProduct[]>([]);
@@ -122,11 +124,11 @@ export default function AlmacenesPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#F8FAFC' }}>{selectedWarehouse.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,.35)' }}>{products.length} productos · {selectedWarehouse.address || 'Sin dirección'}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,.35)' }}>{products.length} {template.productLabel.plural.toLowerCase()} · {selectedWarehouse.address || 'Sin dirección'}</div>
                     </div>
                   </div>
 
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..."
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Buscar ${template.productLabel.singular.toLowerCase()}...`}
                     style={{ width: '100%', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', marginBottom: 12 }}
                   />
 
@@ -135,12 +137,12 @@ export default function AlmacenesPage() {
                   ) : (
                     <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, overflow: 'hidden' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px', padding: '10px 16px', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-                        {['Código','Producto','Stock','Unidad'].map(h => (
+                        {['Código',template.productLabel.singular,'Stock','Unidad'].map(h => (
                           <div key={h} style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
                         ))}
                       </div>
                       {filteredProducts.length === 0 ? (
-                        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: '0.82rem' }}>Sin productos en este almacén</div>
+                        <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: '0.82rem' }}>Sin {template.productLabel.plural.toLowerCase()} en este almacén</div>
                       ) : filteredProducts.map((p, i) => (
                         <div key={p.productId} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 100px 80px', padding: '10px 16px', borderBottom: i < filteredProducts.length - 1 ? '1px solid rgba(255,255,255,.05)' : 'none', alignItems: 'center' }}>
                           <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color }}>{p.productCode}</div>

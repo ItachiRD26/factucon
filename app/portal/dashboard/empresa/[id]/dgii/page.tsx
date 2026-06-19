@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { DGII_AMBIENTES, TIPOS_ECF, type DgiiAmbiente, type TipoECF } from '@/lib/dgii/types';
+import { hasPaidPlan } from '@/lib/subscriptions/gates';
+import type { SubscriptionStatus } from '@/lib/types';
 
 interface DgiiConfigState {
   enabled:            boolean;
@@ -29,6 +31,8 @@ export default function DgiiConfigPage() {
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('trial');
+  const canCertify = hasPaidPlan(subscriptionStatus);
 
   // Certificado .p12
   const [certFile,     setCertFile]     = useState<File | null>(null);
@@ -44,7 +48,10 @@ export default function DgiiConfigPage() {
     setLoading(true);
     fetch(`/api/portal/dgii?companyId=${companyId}`)
       .then(r => r.json())
-      .then(d => { if (d.dgiiConfig) setConfig(d.dgiiConfig); })
+      .then(d => {
+        if (d.dgiiConfig) setConfig(d.dgiiConfig);
+        if (d.subscriptionStatus) setSubscriptionStatus(d.subscriptionStatus);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -115,17 +122,32 @@ export default function DgiiConfigPage() {
         <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,.35)' }}>Configuración de facturación electrónica</p>
       </div>
 
+      {!canCertify && (
+        <div style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 14, padding: '18px 20px', marginBottom: 16 }}>
+          <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FCD34D', marginBottom: 6 }}>🔒 Necesitas tu plan activo para certificarte</h3>
+          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 12 }}>
+            Certificarte ante la DGII tiene un costo operativo, por eso lo habilitamos solo para empresas
+            con el plan pagado (estás en período de prueba). Puedes seguir usando POS, inventario y el
+            resto del sistema libremente durante tu trial.
+          </p>
+          <Link href={`/portal/dashboard/empresa/${companyId}/facturacion`}
+            style={{ display: 'inline-block', fontSize: '0.8rem', fontWeight: 700, color: '#fff', background: '#F59E0B', padding: '8px 16px', borderRadius: 9, textDecoration: 'none' }}>
+            Activar mi plan →
+          </Link>
+        </div>
+      )}
+
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Activar/desactivar e-CF */}
-        <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+        <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, opacity: canCertify ? 1 : 0.5 }}>
           <div>
             <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 3 }}>Facturación electrónica (e-CF)</h3>
             <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,.4)' }}>
               {config.enabled ? 'Activa — las ventas emiten e-CF automáticamente' : 'Inactiva — el sistema usa NCF tradicional'}
             </p>
           </div>
-          <button type="button" onClick={() => setConfig(c => ({ ...c, enabled: !c.enabled }))}
-            style={{ width: 50, height: 28, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0, background: config.enabled ? '#0EA5E9' : 'rgba(255,255,255,.15)', transition: 'background .15s' }}>
+          <button type="button" disabled={!canCertify} onClick={() => setConfig(c => ({ ...c, enabled: !c.enabled }))}
+            style={{ width: 50, height: 28, borderRadius: 99, border: 'none', cursor: canCertify ? 'pointer' : 'not-allowed', position: 'relative', flexShrink: 0, background: config.enabled ? '#0EA5E9' : 'rgba(255,255,255,.15)', transition: 'background .15s' }}>
             <span style={{ position: 'absolute', top: 3, left: config.enabled ? 25 : 3, width: 22, height: 22, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
           </button>
         </div>
@@ -184,19 +206,19 @@ export default function DgiiConfigPage() {
           </span>
         </div>
 
-        <form onSubmit={handleUploadCert} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleUploadCert} style={{ display: 'flex', flexDirection: 'column', gap: 12, opacity: canCertify ? 1 : 0.5 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={LABEL_STYLE}>Archivo .p12</label>
-              <input type="file" accept=".p12,.pfx" onChange={e => setCertFile(e.target.files?.[0] ?? null)}
+              <input type="file" accept=".p12,.pfx" disabled={!canCertify} onChange={e => setCertFile(e.target.files?.[0] ?? null)}
                 style={{ ...INPUT_STYLE, padding: '8px 10px' }} />
             </div>
-            <Field label="Contraseña del certificado" type="password" value={certPassword} onChange={setCertPassword} placeholder="••••••••" />
+            <Field label="Contraseña del certificado" type="password" value={certPassword} onChange={setCertPassword} placeholder="••••••••" disabled={!canCertify} />
           </div>
           {certError && <Banner type="error">{certError}</Banner>}
           <div>
-            <button type="submit" disabled={uploading}
-              style={{ padding: '9px 20px', borderRadius: 10, background: uploading ? 'rgba(14,165,233,.4)' : '#0EA5E9', color: '#fff', fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+            <button type="submit" disabled={uploading || !canCertify}
+              style={{ padding: '9px 20px', borderRadius: 10, background: uploading ? 'rgba(14,165,233,.4)' : '#0EA5E9', color: '#fff', fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: (uploading || !canCertify) ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {uploading ? 'Subiendo...' : 'Subir certificado'}
             </button>
           </div>
@@ -234,15 +256,15 @@ const INPUT_STYLE: React.CSSProperties = {
 
 const SELECT_STYLE: React.CSSProperties = { ...INPUT_STYLE };
 
-function Field({ label, value, onChange, placeholder, type = 'text' }: {
+function Field({ label, value, onChange, placeholder, type = 'text', disabled }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string;
+  placeholder?: string; type?: string; disabled?: boolean;
 }) {
   return (
     <div>
       <label style={LABEL_STYLE}>{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder} disabled={disabled}
         style={INPUT_STYLE}
         onFocus={e => (e.target.style.borderColor = '#0EA5E9')}
         onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.12)')}

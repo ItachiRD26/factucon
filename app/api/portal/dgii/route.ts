@@ -23,8 +23,9 @@ export async function GET(req: NextRequest) {
 
   const stored = (snap.data()?.dgiiConfig as Partial<DgiiConfig> | undefined) ?? {};
   const dgiiConfig: DgiiConfig = { ...DEFAULT_DGII_CONFIG, ...stored };
+  const subscriptionStatus = snap.data()?.subscription?.status ?? 'trial';
 
-  return NextResponse.json({ dgiiConfig });
+  return NextResponse.json({ dgiiConfig, subscriptionStatus });
 }
 
 // PUT /api/portal/dgii — actualizar configuración DGII (no toca credenciales)

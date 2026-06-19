@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { UNITS, DEFAULT_UNIT, getUnit } from '@/lib/units';
+import { DEFAULT_UNIT, getUnit, getUnitsForTemplate } from '@/lib/units';
+import { getCompany } from '@/lib/db/companies';
+import { TEMPLATES } from '@/lib/types';
 
 interface Product {
   id:       string;
@@ -33,8 +35,12 @@ export default function ProductosPage() {
   const [form,     setForm]     = useState(EMPTY);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState('');
+  const [templateId, setTemplateId] = useState<string | null>(null);
 
   const selectedUnit = getUnit(form.unit);
+  const template     = TEMPLATES.find(t => t.id === templateId) ?? TEMPLATES.find(t => t.id === 'custom')!;
+  const availableUnits = getUnitsForTemplate(template.unitIds);
+  const quickUnitIds  = template.unitIds.length ? template.unitIds.slice(0, 6) : ['unidad','lb','kg','litro','metro','yarda'];
 
   function load() {
     setLoading(true);
@@ -42,6 +48,7 @@ export default function ProductosPage() {
       .then(r => r.json())
       .then(d => setProducts(d.products ?? []))
       .finally(() => setLoading(false));
+    getCompany(companyId).then(c => setTemplateId(c?.templateId ?? null));
   }
 
   useEffect(() => { load(); }, [companyId]);
@@ -96,12 +103,12 @@ export default function ProductosPage() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.03em', marginBottom: 3 }}>Productos</h1>
-          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,.35)' }}>{products.length} producto{products.length !== 1 ? 's' : ''} registrado{products.length !== 1 ? 's' : ''}</p>
+          <h1 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.03em', marginBottom: 3 }}>{template.productLabel.plural}</h1>
+          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,.35)' }}>{products.length} {(products.length !== 1 ? template.productLabel.plural : template.productLabel.singular).toLowerCase()} registrado{products.length !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={openNew}
           style={{ padding: '9px 20px', borderRadius: 11, background: '#0EA5E9', color: '#fff', fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: 'pointer', boxShadow: '0 2px 12px rgba(14,165,233,.3)' }}>
-          + Agregar producto
+          + Agregar {template.productLabel.singular.toLowerCase()}
         </button>
       </div>
 
@@ -121,11 +128,11 @@ export default function ProductosPage() {
         <div style={{ textAlign: 'center', padding: '60px 24px', background: 'rgba(255,255,255,.02)', border: '1px dashed rgba(255,255,255,.1)', borderRadius: 16 }}>
           <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📦</div>
           <p style={{ color: 'rgba(255,255,255,.4)', fontSize: '0.85rem', marginBottom: 16 }}>
-            {search ? 'Sin resultados' : 'No hay productos. ¡Agrega el primero!'}
+            {search ? 'Sin resultados' : `No hay ${template.productLabel.plural.toLowerCase()}. ¡Agrega el primero!`}
           </p>
           {!search && (
             <button onClick={openNew} style={{ padding: '9px 20px', borderRadius: 10, background: '#0EA5E9', color: '#fff', fontWeight: 700, fontSize: '0.82rem', border: 'none', cursor: 'pointer' }}>
-              + Agregar producto
+              + Agregar {template.productLabel.singular.toLowerCase()}
             </button>
           )}
         </div>
@@ -181,7 +188,7 @@ export default function ProductosPage() {
             style={{ background: '#0F1E35', border: '1px solid rgba(255,255,255,.12)', borderRadius: 20, width: '100%', maxWidth: 580, maxHeight: '92vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.5)' }}>
             <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#F8FAFC' }}>
-                {editing ? 'Editar producto' : 'Agregar producto'}
+                {editing ? `Editar ${template.productLabel.singular.toLowerCase()}` : `Agregar ${template.productLabel.singular.toLowerCase()}`}
               </h3>
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 18 }}>✕</button>
             </div>
@@ -197,8 +204,8 @@ export default function ProductosPage() {
                     Unidad de medida *
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 6, marginBottom: 8 }}>
-                    {/* Acceso rápido a las más comunes */}
-                    {['unidad','lb','kg','litro','metro','yarda'].map(uid => {
+                    {/* Acceso rápido a las más comunes para este tipo de negocio */}
+                    {quickUnitIds.map(uid => {
                       const u = getUnit(uid);
                       return (
                         <button key={uid} type="button" onClick={() => setForm(f => ({ ...f, unit: uid }))}
@@ -212,7 +219,7 @@ export default function ProductosPage() {
                   {/* Select completo */}
                   <select value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                     style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '9px 12px', color: '#F8FAFC', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}>
-                    {UNITS.map(u => (
+                    {availableUnits.map(u => (
                       <option key={u.id} value={u.id}>{u.label} ({u.short}) {u.decimal ? '— decimal' : '— entero'}</option>
                     ))}
                   </select>

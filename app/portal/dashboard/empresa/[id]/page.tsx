@@ -123,6 +123,17 @@ export default function EmpresaDetailPage() {
         </div>
       )}
 
+      {/* e-CF no activado */}
+      {!company.dgiiConfig?.enabled && (
+        <div style={{ padding: '12px 16px', background: 'rgba(14,165,233,.08)', border: '1px solid rgba(14,165,233,.2)', borderRadius: 12, marginBottom: 16, fontSize: '0.78rem', color: '#38BDF8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <span>🧾 Activa tu facturación electrónica (e-CF) y cumple con la DGII automáticamente</span>
+          <Link href={`/portal/dashboard/empresa/${company.id}/dgii`}
+            style={{ color: '#0EA5E9', fontWeight: 700, fontSize: '0.78rem', textDecoration: 'none' }}>
+            Configurar →
+          </Link>
+        </div>
+      )}
+
       {/* Stats grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
         {[

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
 import { type TipoECF, type EstadoDGII, type DgiiAmbiente } from '@/lib/dgii/types';
+import { hasPaidPlan } from '@/lib/subscriptions/gates';
+import type { SubscriptionStatus } from '@/lib/types';
 
 interface ResultadoCaso {
   eNCF:        string;
@@ -37,6 +39,7 @@ interface CertData {
     progreso: { total: number; completados: number; pasados: number };
   };
   casosDisponibles: CasoDisponible[];
+  subscriptionStatus: SubscriptionStatus;
 }
 
 const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -174,6 +177,7 @@ export default function CertificacionPage() {
   const progreso  = data.certificacion.progreso;
   const allPassed = progreso.total > 0 && progreso.pasados === progreso.total;
   const datosFiscalesOk = !!cfg.rnc.trim() && !!cfg.actividadEconomica.trim();
+  const canCertify = hasPaidPlan(data.subscriptionStatus);
 
   return (
     <SistemaLayout>
@@ -184,6 +188,20 @@ export default function CertificacionPage() {
             Guía paso a paso para certificar la facturación electrónica (e-CF) ante la DGII
           </p>
         </div>
+
+        {!canCertify && (
+          <div style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FCD34D', marginBottom: 6 }}>🔒 Necesitas tu plan activo para certificarte</h3>
+            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,.55)', lineHeight: 1.7, marginBottom: 12 }}>
+              Certificarte ante la DGII tiene un costo operativo, por eso está disponible solo con el plan
+              pagado. El resto del sistema (POS, inventario, etc.) sigue disponible libremente durante tu
+              período de prueba.
+            </p>
+            <a href={`/portal/dashboard/empresa/${session?.companyId}/facturacion`} style={LINK_STYLE}>
+              Activar mi plan →
+            </a>
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
@@ -233,8 +251,10 @@ export default function CertificacionPage() {
           </StepCard>
 
           <StepCard n={5} title="Pruebas TestECF"
-            status={!cfg.certificadoCargado ? 'locked' : allPassed ? 'done' : 'progress'} color={color}>
-            {!cfg.certificadoCargado ? (
+            status={!canCertify ? 'locked' : !cfg.certificadoCargado ? 'locked' : allPassed ? 'done' : 'progress'} color={color}>
+            {!canCertify ? (
+              <Banner type="warn">Activa tu plan (ver aviso arriba) para poder ejecutar las pruebas.</Banner>
+            ) : !cfg.certificadoCargado ? (
               <Banner type="warn">Carga tu certificado .p12 (paso 4) para poder ejecutar las pruebas.</Banner>
             ) : (
               <>

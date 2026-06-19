@@ -46,6 +46,12 @@ export function getUnit(id: string): UnitConfig {
   return UNITS.find(u => u.id === id) ?? UNITS[0];
 }
 
+// Subconjunto de UNITS relevante para una plantilla de industria (Template.unitIds).
+// Array vacío = sin filtrar, se muestran todas (caso de la plantilla 'custom').
+export function getUnitsForTemplate(unitIds: string[]): UnitConfig[] {
+  return unitIds.length ? UNITS.filter(u => unitIds.includes(u.id)) : UNITS;
+}
+
 export function formatQty(qty: number, unitId: string): string {
   const unit = getUnit(unitId);
   const formatted = unit.decimal

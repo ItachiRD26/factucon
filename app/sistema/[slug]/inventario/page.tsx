@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
+import { TEMPLATES } from '@/lib/types';
 
 interface Product {
   id: string; code: string; name: string;
@@ -15,6 +16,7 @@ interface Movement {
 
 export default function InventarioPage() {
   const { session, loading } = useSistemaSession();
+  const template = TEMPLATES.find(t => t.id === session?.templateId) ?? TEMPLATES.find(t => t.id === 'custom')!;
   const [products,   setProducts]   = useState<Product[]>([]);
   const [movements,  setMovements]  = useState<Movement[]>([]);
   const [tab,        setTab]        = useState<'stock' | 'movements' | 'adjust'>('stock');
@@ -81,7 +83,7 @@ export default function InventarioPage() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
           {[
-            ['Total productos', products.length, '#0EA5E9', '📦'],
+            [`Total ${template.productLabel.plural.toLowerCase()}`, products.length, '#0EA5E9', '📦'],
             ['Stock bajo (≤10)', lowStock, '#F59E0B', '⚠️'],
             ['Sin stock', outStock, '#EF4444', '🚫'],
             ['Valor inventario', `RD$${totalValue.toLocaleString()}`, '#10B981', '💰'],
@@ -107,7 +109,7 @@ export default function InventarioPage() {
         {tab === 'stock' && (
           <>
             <div style={{ position: 'relative', marginBottom: 14 }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Buscar ${template.productLabel.singular.toLowerCase()}...`}
                 style={{ width: '100%', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '9px 12px', color: '#F8FAFC', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
               />
             </div>
@@ -143,7 +145,7 @@ export default function InventarioPage() {
         {tab === 'movements' && (
           <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 80px', padding: '10px 16px', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-              {['Producto','Tipo','Cantidad','Por'].map(h => (
+              {[template.productLabel.singular,'Tipo','Cantidad','Por'].map(h => (
                 <div key={h} style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
               ))}
             </div>

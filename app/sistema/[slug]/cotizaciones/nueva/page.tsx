@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
 import { getUnit } from '@/lib/units';
+import { TEMPLATES } from '@/lib/types';
 
 interface Product { id: string; code: string; name: string; price: number; stock: number; unit: string; taxable: boolean; }
 interface Client  { id: string; name: string; rnc: string; phone: string; email: string; }
@@ -15,6 +16,7 @@ export default function NuevaCotizacionPage() {
   const { slug }             = useParams<{ slug: string }>();
   const router               = useRouter();
   const { session, loading } = useSistemaSession();
+  const template = TEMPLATES.find(t => t.id === session?.templateId) ?? TEMPLATES.find(t => t.id === 'custom')!;
 
   const [products,  setProducts]  = useState<Product[]>([]);
   const [clients,   setClients]   = useState<Client[]>([]);
@@ -76,7 +78,7 @@ export default function NuevaCotizacionPage() {
   ).slice(0, 8);
 
   async function handleSave(status: 'draft' | 'sent') {
-    if (items.length === 0) { setError('Agrega al menos un producto'); return; }
+    if (items.length === 0) { setError(`Agrega al menos un ${template.productLabel.singular.toLowerCase()}`); return; }
     setSaving(true); setError('');
     try {
       const validDate = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -171,10 +173,10 @@ export default function NuevaCotizacionPage() {
 
             {/* Búsqueda de productos */}
             <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '18px' }}>
-              <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 12 }}>🔍 Agregar productos</h3>
+              <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 12 }}>🔍 Agregar {template.productLabel.plural.toLowerCase()}</h3>
               <div style={{ position: 'relative', marginBottom: 10 }}>
                 <input value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar producto por nombre o código..."
+                  placeholder={`Buscar ${template.productLabel.singular.toLowerCase()} por nombre o código...`}
                   style={{ ...inputStyle, paddingLeft: 12 }}
                   onFocus={e => (e.target.style.borderColor = color)}
                   onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.12)')}
@@ -206,7 +208,7 @@ export default function NuevaCotizacionPage() {
             {items.length > 0 && (
               <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '18px' }}>
                 <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 14 }}>
-                  📦 Productos ({items.length})
+                  📦 {template.productLabel.plural} ({items.length})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {items.map((item, idx) => {

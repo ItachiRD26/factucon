@@ -3,6 +3,8 @@ import { adminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { loadCertAndKey } from '@/lib/dgii/xml-signer';
 import { guardarCertificado } from '@/lib/dgii/cert-crypto';
+import { hasPaidPlan } from '@/lib/subscriptions/gates';
+import type { Company } from '@/lib/types';
 
 // POST /api/portal/dgii/cert — multipart/form-data: companyId, password, file (.p12)
 export async function POST(req: NextRequest) {
@@ -20,6 +22,13 @@ export async function POST(req: NextRequest) {
     }
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: 'Archivo .p12 requerido' }, { status: 400 });
+    }
+
+    const companySnap = await adminDb.collection('companies').doc(companyId).get();
+    if (!companySnap.exists) return NextResponse.json({ error: 'Empresa no encontrada' }, { status: 404 });
+    const status = (companySnap.data() as Company).subscription.status;
+    if (!hasPaidPlan(status)) {
+      return NextResponse.json({ error: 'Necesitas tener tu plan activo (pagado) para certificarte ante la DGII.' }, { status: 402 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

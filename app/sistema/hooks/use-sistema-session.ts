@@ -11,6 +11,7 @@ export interface SistemaSession {
   modules:      string[];
   companyName:  string;
   primaryColor: string;
+  templateId:   string;
   exp:          number;
 }
 

@@ -220,17 +220,33 @@ export interface Template {
   icon:            string;
   defaultModules:  ModuleId[];
   color:           string;
+  // Cómo se le llama a un "producto" en este tipo de negocio (ej. "Medicamento"
+  // en farmacia, "Plato" en restaurante) — usado en POS, inventario, productos.
+  productLabel:    { singular: string; plural: string };
+  // Subconjunto de ids de lib/units.ts relevante para este negocio. Vacío =
+  // mostrar todas las unidades (caso de 'custom').
+  unitIds:         string[];
 }
 
 export const TEMPLATES: Template[] = [
-  { id: 'pharmacy',   name: 'Farmacia',      icon: '💊', color: '#10B981', description: 'Lote, vencimiento, INVIMA',        defaultModules: ['pos','inventory','clients','reports'] },
-  { id: 'workshop',   name: 'Taller',        icon: '🔧', color: '#F59E0B', description: 'Órdenes de trabajo, mecánicos',    defaultModules: ['pos','quotes','clients','reports'] },
-  { id: 'restaurant', name: 'Restaurante',   icon: '🍽️', color: '#EF4444', description: 'Mesas, cocina, delivery',          defaultModules: ['pos','inventory','reports'] },
-  { id: 'grocery',    name: 'Colmado',       icon: '🏪', color: '#8B5CF6', description: 'POS rápido, fiado, inventario',    defaultModules: ['pos','inventory','reports'] },
-  { id: 'clinic',     name: 'Clínica',       icon: '🏥', color: '#0EA5E9', description: 'Pacientes, citas, NCF',            defaultModules: ['pos','clients','ecf','reports'] },
-  { id: 'boutique',   name: 'Boutique',      icon: '👗', color: '#D4537E', description: 'Tallas, colores, temporadas',      defaultModules: ['pos','inventory','clients','reports'] },
-  { id: 'hardware',   name: 'Ferretería',    icon: '🏗️', color: '#92400E', description: 'Inventario amplio, unidades',      defaultModules: ['pos','inventory','purchases','reports'] },
-  { id: 'bookstore',  name: 'Librería',      icon: '📚', color: '#1D4ED8', description: 'ISBN, editoriales, consignación',  defaultModules: ['pos','inventory','reports'] },
-  { id: 'salon',      name: 'Salón de belleza', icon: '💈', color: '#BE185D', description: 'Servicios, citas, comisiones', defaultModules: ['pos','clients','quotes','reports'] },
-  { id: 'custom',     name: 'Personalizado', icon: '⚙️', color: '#6B7280', description: 'Configura desde cero',             defaultModules: ['pos','inventory'] },
+  { id: 'pharmacy',   name: 'Farmacia',      icon: '💊', color: '#10B981', description: 'Lote, vencimiento, INVIMA',        defaultModules: ['pos','inventory','clients','reports'],
+    productLabel: { singular: 'Medicamento', plural: 'Medicamentos' }, unitIds: ['unidad','caja','paquete'] },
+  { id: 'workshop',   name: 'Taller',        icon: '🔧', color: '#F59E0B', description: 'Órdenes de trabajo, mecánicos',    defaultModules: ['pos','quotes','clients','reports'],
+    productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora','unidad'] },
+  { id: 'restaurant', name: 'Restaurante',   icon: '🍽️', color: '#EF4444', description: 'Mesas, cocina, delivery',          defaultModules: ['pos','inventory','reports'],
+    productLabel: { singular: 'Plato', plural: 'Platos' }, unitIds: ['unidad','servicio','litro'] },
+  { id: 'grocery',    name: 'Colmado',       icon: '🏪', color: '#8B5CF6', description: 'POS rápido, fiado, inventario',    defaultModules: ['pos','inventory','reports'],
+    productLabel: { singular: 'Producto', plural: 'Productos' }, unitIds: ['unidad','lb','kg','litro','galon','caja','paquete'] },
+  { id: 'clinic',     name: 'Clínica',       icon: '🏥', color: '#0EA5E9', description: 'Pacientes, citas, NCF',            defaultModules: ['pos','clients','ecf','reports'],
+    productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora','unidad'] },
+  { id: 'boutique',   name: 'Boutique',      icon: '👗', color: '#D4537E', description: 'Tallas, colores, temporadas',      defaultModules: ['pos','inventory','clients','reports'],
+    productLabel: { singular: 'Prenda', plural: 'Prendas' }, unitIds: ['unidad','par','docena'] },
+  { id: 'hardware',   name: 'Ferretería',    icon: '🏗️', color: '#92400E', description: 'Inventario amplio, unidades',      defaultModules: ['pos','inventory','purchases','reports'],
+    productLabel: { singular: 'Material', plural: 'Materiales' }, unitIds: ['unidad','metro','pie','lb','kg','galon','litro','caja','rollo'] },
+  { id: 'bookstore',  name: 'Librería',      icon: '📚', color: '#1D4ED8', description: 'ISBN, editoriales, consignación',  defaultModules: ['pos','inventory','reports'],
+    productLabel: { singular: 'Libro', plural: 'Libros' }, unitIds: ['unidad','docena','caja'] },
+  { id: 'salon',      name: 'Salón de belleza', icon: '💈', color: '#BE185D', description: 'Servicios, citas, comisiones', defaultModules: ['pos','clients','quotes','reports'],
+    productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora'] },
+  { id: 'custom',     name: 'Personalizado', icon: '⚙️', color: '#6B7280', description: 'Configura desde cero',             defaultModules: ['pos','inventory'],
+    productLabel: { singular: 'Producto', plural: 'Productos' }, unitIds: [] },
 ];

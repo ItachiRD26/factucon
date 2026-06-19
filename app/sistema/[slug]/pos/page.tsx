@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
 import { getUnit, formatQty } from '@/lib/units';
+import { TEMPLATES } from '@/lib/types';
 import { resolverECFConfig, TIPOS_ECF, type DgiiAmbiente, type SubtipoJuridica } from '@/lib/dgii/types';
 import { derivarTipoPersona } from '@/lib/dgii/mapeo';
 
@@ -41,6 +42,7 @@ const PAYMENT_METHODS = [
 export default function POSPage() {
   const { slug }             = useParams<{ slug: string }>();
   const { session, loading } = useSistemaSession();
+  const template = TEMPLATES.find(t => t.id === session?.templateId) ?? TEMPLATES.find(t => t.id === 'custom')!;
 
   const [products,     setProducts]     = useState<Product[]>([]);
   const [clients,      setClients]      = useState<Client[]>([]);
@@ -190,7 +192,7 @@ export default function POSPage() {
             <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="13" height="13" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto, código o barcode..."
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Buscar ${template.productLabel.singular.toLowerCase()}, código o barcode...`}
               style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '9px 12px 9px 32px', color: '#F8FAFC', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
               onFocus={e => (e.target.style.borderColor = color)} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}
             />
@@ -207,10 +209,10 @@ export default function POSPage() {
 
           <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, alignContent: 'start' }}>
             {loadingProds ? (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, color: 'rgba(255,255,255,.3)', fontSize: '0.82rem' }}>Cargando productos...</div>
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, color: 'rgba(255,255,255,.3)', fontSize: '0.82rem' }}>Cargando {template.productLabel.plural.toLowerCase()}...</div>
             ) : filtered.length === 0 ? (
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 40, color: 'rgba(255,255,255,.3)', fontSize: '0.82rem' }}>
-                {search ? `Sin resultados para "${search}"` : 'No hay productos disponibles'}
+                {search ? `Sin resultados para "${search}"` : `No hay ${template.productLabel.plural.toLowerCase()} disponibles`}
               </div>
             ) : filtered.map(product => {
               const unit    = getUnit(product.unit ?? 'unidad');
@@ -251,7 +253,7 @@ export default function POSPage() {
             {cart.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,.2)', gap: 8 }}>
                 <span style={{ fontSize: '2rem' }}>🛒</span>
-                <span style={{ fontSize: '0.78rem' }}>Agrega productos al carrito</span>
+                <span style={{ fontSize: '0.78rem' }}>Agrega {template.productLabel.plural.toLowerCase()} al carrito</span>
               </div>
             ) : cart.map(item => {
               const unit = getUnit(item.product.unit ?? 'unidad');
