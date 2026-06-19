@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
 import { getUnit, formatQty } from '@/lib/units';
+import { resolverECFConfig, TIPOS_ECF, type DgiiAmbiente, type SubtipoJuridica } from '@/lib/dgii/types';
+import { derivarTipoPersona } from '@/lib/dgii/mapeo';
 
 interface Product {
   id: string; code: string; name: string;
@@ -15,8 +17,9 @@ interface Product {
 interface CartItem { product: Product; qty: number; discount: number; }
 interface Client {
   id: string; name: string; rnc: string; phone: string;
-  creditLimit: number; balance: number;
+  creditLimit: number; balance: number; subtipoFiscal?: SubtipoJuridica;
 }
+interface DgiiResult { tipoECF?: string; eNCF?: string; estado: string; error?: string; urlQR?: string }
 
 const TAX_RATE = 0.18;
 
@@ -51,9 +54,10 @@ export default function POSPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [loadingProds, setLoadingProds] = useState(true);
   const [processing,   setProcessing]   = useState(false);
-  const [saleSuccess,  setSaleSuccess]  = useState<{ saleNumber: string; change: number } | null>(null);
+  const [saleSuccess,  setSaleSuccess]  = useState<{ saleNumber: string; change: number; dgii?: DgiiResult | null } | null>(null);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [creditSearch,    setCreditSearch]    = useState('');
+  const [dgiiConfig, setDgiiConfig] = useState<{ enabled: boolean; ambiente: DgiiAmbiente } | null>(null);
 
   const color = session?.primaryColor ?? '#0EA5E9';
 
@@ -62,9 +66,11 @@ export default function POSPage() {
     Promise.all([
       fetch(`/api/sistema/products?companyId=${session.companyId}`).then(r => r.json()),
       fetch(`/api/sistema/clients?companyId=${session.companyId}`).then(r => r.json()),
-    ]).then(([p, c]) => {
+      fetch(`/api/sistema/dgii/config?companyId=${session.companyId}`).then(r => r.json()),
+    ]).then(([p, c, d]) => {
       setProducts(p.products ?? []);
       setClients(c.clients  ?? []);
+      setDgiiConfig({ enabled: !!d.enabled, ambiente: d.ambiente ?? 'testecf' });
     }).finally(() => setLoadingProds(false));
   }, [session?.companyId]);
 
@@ -126,6 +132,15 @@ export default function POSPage() {
      payMethod === 'card'   ? cardRef.trim().length > 0 :
      payMethod === 'credit' ? selectedClient !== null : true);
 
+  const ecfConfig = resolverECFConfig(
+    selectedClient
+      ? { tipo: derivarTipoPersona(selectedClient.rnc), subtipo: selectedClient.subtipoFiscal, rnc: selectedClient.rnc }
+      : undefined,
+    !selectedClient,
+    false,
+  );
+  const tipoECFLabel = TIPOS_ECF.find(t => t.codigo === ecfConfig.tipoDefault)?.label ?? ecfConfig.tipoDefault;
+
   async function processSale() {
     if (!session || !canProcess) return;
     setProcessing(true);
@@ -144,13 +159,15 @@ export default function POSPage() {
           amountPaid: payMethod === 'cash' ? parseFloat(amountPaid) : total,
           change:     payMethod === 'cash' ? Math.max(0, change) : 0,
           cardReference: payMethod === 'card' ? cardRef.trim() : null,
-          customer: selectedClient ? { id: selectedClient.id, name: selectedClient.name, rnc: selectedClient.rnc } : null,
-          ncfType,
+          customer: selectedClient
+            ? { id: selectedClient.id, name: selectedClient.name, rnc: selectedClient.rnc, subtipoFiscal: selectedClient.subtipoFiscal }
+            : null,
+          ncfType: dgiiConfig?.enabled ? undefined : ncfType,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSaleSuccess({ saleNumber: data.saleNumber, change: payMethod === 'cash' ? Math.max(0, change) : 0 });
+      setSaleSuccess({ saleNumber: data.saleNumber, change: payMethod === 'cash' ? Math.max(0, change) : 0, dgii: data.dgii ?? null });
       setCart([]); setAmountPaid(''); setSearch(''); setCardRef(''); setSelectedClient(null); setPayMethod('cash');
     } catch (e: any) {
       alert(e.message ?? 'Error procesando la venta');
@@ -289,13 +306,19 @@ export default function POSPage() {
 
           {cart.length > 0 && (
             <div style={{ borderTop: '1px solid rgba(255,255,255,.07)', padding: '12px 14px' }}>
-              {/* NCF */}
+              {/* Comprobante fiscal */}
               <div style={{ marginBottom: 10 }}>
                 <label style={{ display: 'block', fontSize: '0.62rem', fontWeight: 600, color: 'rgba(255,255,255,.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Comprobante fiscal</label>
-                <select value={ncfType} onChange={e => setNcfType(e.target.value)}
-                  style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '7px 10px', color: '#F8FAFC', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit' }}>
-                  {NCF_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                </select>
+                {dgiiConfig?.enabled ? (
+                  <div style={{ background: 'rgba(14,165,233,.08)', border: '1px solid rgba(14,165,233,.2)', borderRadius: 8, padding: '7px 10px', color: '#38BDF8', fontSize: '0.78rem', fontWeight: 600 }}>
+                    Se emitirá: {tipoECFLabel}
+                  </div>
+                ) : (
+                  <select value={ncfType} onChange={e => setNcfType(e.target.value)}
+                    style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '7px 10px', color: '#F8FAFC', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit' }}>
+                    {NCF_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </select>
+                )}
               </div>
 
               {/* Totales */}
@@ -429,6 +452,11 @@ export default function POSPage() {
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F8FAFC', marginBottom: 8 }}>¡Venta completada!</h3>
             <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color, marginBottom: 8 }}>{saleSuccess.saleNumber}</div>
             {saleSuccess.change > 0 && <div style={{ fontSize: '0.88rem', color: '#34D399', fontWeight: 600, marginBottom: 16 }}>Cambio: RD${saleSuccess.change.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</div>}
+            {saleSuccess.dgii?.estado === 'error' && (
+              <div style={{ marginBottom: 16, padding: '8px 12px', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 9, fontSize: '0.7rem', color: '#FBBF24' }}>
+                ⚠️ e-CF pendiente de envío (se reintentará desde Facturas)
+              </div>
+            )}
             <button onClick={() => setSaleSuccess(null)} style={{ padding: '10px 28px', borderRadius: 11, background: color, color: '#fff', fontWeight: 700, fontSize: '0.88rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
               Nueva venta
             </button>

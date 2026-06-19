@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { generateCodesForCompany } from '@/lib/db/codes';
-import { SubscriptionStatus, ModuleId, TemplateId, ActivationCode, calculatePrice, PRICING } from '@/lib/types';
+import { SubscriptionStatus, ModuleId, TemplateId, ActivationCode, calculatePrice, getPlanTier, PRICING } from '@/lib/types';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
@@ -50,8 +50,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Calcular precio ───────────────────────────────────────
+    // ── Calcular precio y tier ─────────────────────────────────
     const planPrice = calculatePrice(modules as ModuleId[], users.length);
+    const tier       = getPlanTier(planPrice);
 
     // ── Timestamps ────────────────────────────────────────────
     const now      = Timestamp.now();
@@ -83,6 +84,11 @@ export async function POST(req: NextRequest) {
       subscription: {
         status:             'trial' as SubscriptionStatus,
         planPrice,
+        planId:             tier.id,
+        comprobanteLimit:   tier.comprobanteLimit,
+        comprobantesUsed:   0,
+        overageRate:        tier.overageRate,
+        pendingOverageDOP:  0,
         currentPeriodStart: now,
         currentPeriodEnd:   trialEnd,
         trialEndsAt:        trialEnd,

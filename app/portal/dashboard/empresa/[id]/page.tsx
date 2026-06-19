@@ -124,9 +124,10 @@ export default function EmpresaDetailPage() {
       )}
 
       {/* Stats grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
         {[
           ['💰', 'Plan mensual', `RD$${company.subscription.planPrice?.toLocaleString()}/mes`],
+          ['🧾', 'Comprobantes', `${company.subscription.comprobantesUsed ?? 0}/${company.subscription.comprobanteLimit ?? 0} este mes`],
           ['👥', 'Usuarios', `${company.maxUsers} usuario${company.maxUsers !== 1 ? 's' : ''}`],
           ['🧩', 'Módulos', `${company.modules.length} activos`],
           ['🔑', 'Códigos', `${codes.length} generados`],
@@ -145,6 +146,9 @@ export default function EmpresaDetailPage() {
           ['🔑 Usuarios y códigos', `/portal/dashboard/empresa/${company.id}/usuarios`],
           ['💳 Facturación',        `/portal/dashboard/empresa/${company.id}/facturacion`],
           ['📦 Productos', `/portal/dashboard/empresa/${company.id}/productos`],
+          ...(company.modules.includes('ecf')
+            ? [['🧾 DGII / e-CF', `/portal/dashboard/empresa/${company.id}/dgii`]]
+            : []),
         ].map(([label, href]) => (
           <Link key={href as string} href={href as string}
             style={{ padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,.7)', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', textDecoration: 'none', transition: 'all .13s' }}>

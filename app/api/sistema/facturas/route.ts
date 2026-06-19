@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       paymentMethod: data.paymentMethod     ?? 'cash',
       cashierName:   data.cashierName       ?? '',
       createdAt:     data.createdAt?.toDate?.()?.toISOString() ?? null,
+      dgii:          data.dgii ?? null,
     };
   });
 

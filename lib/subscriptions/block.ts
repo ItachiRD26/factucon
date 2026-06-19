@@ -1,6 +1,20 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
-import { updateSubscriptionStatus } from '@/lib/db/companies';
+import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { SubscriptionStatus } from '@/lib/types';
+
+// Actualiza subscription.status (+ blockedAt/inactiveAt) usando el SDK Admin.
+// Nota: esto corre desde un cron sin sesión de Firebase Auth, por lo que NO
+// puede usar el SDK cliente (lib/db/companies.ts) una vez que firestore.rules
+// exige request.auth para leer/escribir "companies".
+async function setSubscriptionStatus(companyId: string, status: SubscriptionStatus): Promise<void> {
+  const updates: Record<string, unknown> = {
+    'subscription.status': status,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  if (status === 'blocked')  updates['subscription.blockedAt']  = FieldValue.serverTimestamp();
+  if (status === 'inactive') updates['subscription.inactiveAt'] = FieldValue.serverTimestamp();
+  await adminDb.collection('companies').doc(companyId).update(updates);
+}
 
 export async function checkAndBlockExpiredSubscriptions(): Promise<{
   blocked:  string[];
@@ -10,12 +24,10 @@ export async function checkAndBlockExpiredSubscriptions(): Promise<{
   const blocked: string[]  = [];
   const inactive: string[] = [];
 
-  const snap = await getDocs(
-    query(
-      collection(db, 'companies'),
-      where('subscription.status', 'in', ['active', 'past_due', 'trial'])
-    )
-  );
+  const snap = await adminDb
+    .collection('companies')
+    .where('subscription.status', 'in', ['active', 'past_due', 'trial'])
+    .get();
 
   for (const docSnap of snap.docs) {
     const data    = docSnap.data();
@@ -30,7 +42,7 @@ export async function checkAndBlockExpiredSubscriptions(): Promise<{
 
     // Trial vencido → bloquear
     if (sub.status === 'trial' && trialEnd && now > trialEnd) {
-      await updateSubscriptionStatus(compId, 'blocked');
+      await setSubscriptionStatus(compId, 'blocked');
       blocked.push(compId);
       continue;
     }
@@ -39,10 +51,10 @@ export async function checkAndBlockExpiredSubscriptions(): Promise<{
     if (sub.status === 'active' && periodEnd && now > periodEnd) {
       const daysPast = (now.getTime() - periodEnd.getTime()) / 86_400_000;
       if (daysPast > 2) {
-        await updateSubscriptionStatus(compId, 'blocked');
+        await setSubscriptionStatus(compId, 'blocked');
         blocked.push(compId);
       } else {
-        await updateSubscriptionStatus(compId, 'past_due');
+        await setSubscriptionStatus(compId, 'past_due');
       }
       continue;
     }
@@ -51,7 +63,7 @@ export async function checkAndBlockExpiredSubscriptions(): Promise<{
     if (sub.status === 'blocked' && blockedAt) {
       const daysBlocked = (now.getTime() - blockedAt.getTime()) / 86_400_000;
       if (daysBlocked > 30) {
-        await updateSubscriptionStatus(compId, 'inactive');
+        await setSubscriptionStatus(compId, 'inactive');
         inactive.push(compId);
       }
     }

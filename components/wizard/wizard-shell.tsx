@@ -6,6 +6,7 @@ import { Step2Modules }  from './step-2-modules';
 import { Step3Users }    from './step-3-users';
 import { Step4Branding } from './step-4-branding';
 import { Step5Pricing }  from './step-5-pricing';
+import { Step6Payment }  from './step-6-payment';
 import { ModuleId, TemplateId, TEMPLATES } from '@/lib/types';
 
 export interface WizardData {
@@ -18,6 +19,7 @@ export interface WizardData {
   phone:        string;
   email:        string;
   primaryColor: string;
+  companyId?:   string;
 }
 
 const STEPS = [
@@ -25,7 +27,8 @@ const STEPS = [
   { num: 2, label: 'Módulos'   },
   { num: 3, label: 'Usuarios'  },
   { num: 4, label: 'Tu marca'  },
-  { num: 5, label: 'Pago'      },
+  { num: 5, label: 'Crear sistema' },
+  { num: 6, label: 'Pago'      },
 ];
 
 const INITIAL: WizardData = {
@@ -45,7 +48,7 @@ export function WizardShell() {
   const [data, setData]   = useState<WizardData>(INITIAL);
   const router            = useRouter();
 
-  function next() { setStep(s => Math.min(s + 1, 5)); }
+  function next() { setStep(s => Math.min(s + 1, 6)); }
   function back() { setStep(s => Math.max(s - 1, 1)); }
   function update(partial: Partial<WizardData>) {
     setData(d => ({ ...d, ...partial }));
@@ -59,7 +62,7 @@ export function WizardShell() {
           Crear nuevo sistema
         </h1>
         <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,.35)' }}>
-          Configura tu sistema de facturación personalizado en 5 pasos
+          Configura tu sistema de facturación personalizado en 6 pasos
         </p>
       </div>
 
@@ -100,7 +103,14 @@ export function WizardShell() {
         {step === 2 && <Step2Modules  data={data} onUpdate={update} onNext={next} onBack={back} />}
         {step === 3 && <Step3Users    data={data} onUpdate={update} onNext={next} onBack={back} />}
         {step === 4 && <Step4Branding data={data} onUpdate={update} onNext={next} onBack={back} />}
-        {step === 5 && <Step5Pricing  data={data} onBack={back} />}
+        {step === 5 && (
+          <Step5Pricing
+            data={data}
+            onBack={back}
+            onProvisioned={companyId => { update({ companyId }); next(); }}
+          />
+        )}
+        {step === 6 && <Step6Payment data={data} />}
       </div>
     </div>
   );

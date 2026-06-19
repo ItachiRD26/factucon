@@ -1,0 +1,60 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para Factucon.
+//
+// Cómo publicarlas: Firebase Console → Firestore Database → Reglas → pegar este
+// archivo completo → Publicar. Ver docs/FIREBASE-SETUP.md para más contexto.
+//
+// Resumen de qué protegen (basado en lib/db/*.ts y lib/auth/auth-context.tsx,
+// que son las únicas partes de la app que hablan con Firestore directo desde
+// el navegador usando el SDK cliente; todo lo que pasa por /api/* usa el SDK
+// Admin y por lo tanto IGNORA estas reglas):
+//
+//  - portal_users/{uid}    → perfil del dueño del portal (1 doc por cuenta).
+//  - companies/{companyId} → cada "empresa"/sistema creado desde el wizard.
+//  - activation_codes/{code} → códigos de activación de cada sistema tenant.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── portal_users/{uid} ──────────────────────────────────────
+    // Cada usuario solo puede leer/escribir su propio documento de perfil.
+    match /portal_users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── companies/{companyId} ───────────────────────────────────
+    // Solo el dueño (ownerId) puede leer o actualizar su empresa. La creación
+    // ya ocurre vía /api/provision (SDK Admin, ignora estas reglas), pero se
+    // deja permitido por si en el futuro se crea algo directo desde el cliente.
+    match /companies/{companyId} {
+      allow read, update: if request.auth != null
+        && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.ownerId;
+      allow delete: if false;
+    }
+
+    // ── activation_codes/{code} ──────────────────────────────────
+    // Lectura/actualización: el dueño autenticado consultando los códigos de
+    // sus sistemas (ver app/portal/dashboard/empresa/[id]/usuarios).
+    // Creación: ocurre durante /api/provision usando el SDK cliente SIN sesión
+    // de Firebase Auth (lib/db/codes.ts → generateCodesForCompany). Para no
+    // romper ese flujo se permite crear el código solo si companyId apunta a
+    // una empresa que ya existe (no se puede "adivinar" un companyId real sin
+    // haber pasado por el provisioning).
+    match /activation_codes/{code} {
+      allow read, update: if request.auth != null;
+      allow create: if exists(/databases/$(database)/documents/companies/$(request.resource.data.companyId));
+      allow delete: if false;
+    }
+
+    // ── Todo lo demás: denegado por defecto ──────────────────────
+    // Incluye subcolecciones de companies (dgii_config, products, sales, etc.)
+    // y cualquier colección usada por /api/* — esas solo se acceden con el SDK
+    // Admin, que ignora estas reglas.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -3,8 +3,16 @@ import { useRouter, useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSistemaSession, deleteCookie } from '@/app/sistema/hooks/use-sistema-session';
 
+interface NavItem {
+  href:       string;
+  icon:       string;
+  label:      string;
+  module:     string | null;
+  ownerOnly?: boolean;
+}
+
 // Todos los nav items posibles con el módulo requerido
-const ALL_NAV_ITEMS = [
+const ALL_NAV_ITEMS: NavItem[] = [
   { href: 'dashboard',  icon: '📊', label: 'Dashboard',       module: null         }, // siempre visible
   { href: 'pos',        icon: '🛒', label: 'Punto de Venta',  module: 'pos'         },
   { href: 'inventario', icon: '📦', label: 'Inventario',       module: 'inventory'   },
@@ -12,9 +20,11 @@ const ALL_NAV_ITEMS = [
   { href: 'clientes',   icon: '👥', label: 'Clientes',         module: 'clients'     },
   { href: 'reportes',   icon: '📈', label: 'Reportes',         module: 'reports'     },
   { href: 'facturas',   icon: '🧾', label: 'Facturas',         module: 'ecf'         },
+  { href: 'certificacion', icon: '🏛️', label: 'Certificación DGII', module: 'ecf'    },
   { href: 'compras',    icon: '🏪', label: 'Compras',          module: 'purchases'   },
   { href: 'cuentas',    icon: '💳', label: 'Cuentas × Cobrar', module: 'accounts_receivable' },
   { href: 'almacenes',  icon: '🏭', label: 'Almacenes',        module: 'multi_warehouse' },
+  { href: 'developers', icon: '🔌', label: 'Desarrolladores',  module: null, ownerOnly: true },
 ];
 
 // Módulos permitidos por rol
@@ -47,9 +57,11 @@ export function SistemaLayout({ children }: { children: React.ReactNode }) {
   const allowed = ROLE_ALLOWED[session.role] ?? ROLE_ALLOWED.cashier;
 
   const navItems = ALL_NAV_ITEMS.filter(item => {
-    // 1. El rol lo permite
+    // 1. Si es exclusivo del owner, solo ese rol lo ve
+    if (item.ownerOnly && session.role !== 'owner') return false;
+    // 2. El rol lo permite
     if (!allowed.includes(item.module)) return false;
-    // 2. Si requiere módulo, la empresa lo tiene activo
+    // 3. Si requiere módulo, la empresa lo tiene activo
     if (item.module !== null && !session.modules.includes(item.module)) return false;
     return true;
   });

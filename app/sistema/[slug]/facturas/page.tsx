@@ -2,6 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
+import { TIPOS_ECF, type TipoECF, type EstadoDGII } from '@/lib/dgii/types';
+
+interface SaleDgii {
+  tipoECF:  TipoECF;
+  eNCF:     string;
+  estado:   EstadoDGII;
+  trackId?: string;
+  urlQR?:   string;
+  error?:   string;
+}
 
 interface Sale {
   id:            string;
@@ -16,6 +26,7 @@ interface Sale {
   paymentMethod: string;
   cashierName:   string;
   createdAt:     string;
+  dgii?:         SaleDgii | null;
 }
 
 const NCF_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -24,6 +35,16 @@ const NCF_LABELS: Record<string, { label: string; color: string; bg: string }> =
   B14: { label: 'B14 — Gubernamental',         color: '#34D399', bg: 'rgba(16,185,129,.1)'  },
   B15: { label: 'B15 — Regímenes Especiales',  color: '#FCD34D', bg: 'rgba(245,158,11,.1)'  },
   B16: { label: 'B16 — Exportaciones',         color: '#F87171', bg: 'rgba(239,68,68,.1)'   },
+};
+
+const ESTADO_DGII_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  pendiente:           { label: 'Pendiente',           color: '#94A3B8', bg: 'rgba(148,163,184,.1)' },
+  Enviado:             { label: 'Enviado',             color: '#38BDF8', bg: 'rgba(14,165,233,.1)'  },
+  Aceptado:            { label: 'Aceptado',            color: '#34D399', bg: 'rgba(16,185,129,.1)'  },
+  AceptadoCondicional: { label: 'Acept. condicional',  color: '#FBBF24', bg: 'rgba(245,158,11,.1)'  },
+  Rechazado:           { label: 'Rechazado',           color: '#F87171', bg: 'rgba(239,68,68,.1)'   },
+  Anulada:             { label: 'Anulada',             color: '#94A3B8', bg: 'rgba(148,163,184,.1)' },
+  error:               { label: 'Error',               color: '#F87171', bg: 'rgba(239,68,68,.1)'   },
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -37,6 +58,8 @@ export default function FacturasPage() {
   const [search,      setSearch]      = useState('');
   const [ncfFilter,   setNcfFilter]   = useState('all');
   const [selected,    setSelected]    = useState<Sale | null>(null);
+  const [dgiiConfig,  setDgiiConfig]  = useState<{ enabled: boolean } | null>(null);
+  const [retrying,    setRetrying]    = useState<string | null>(null);
 
   const color = session?.primaryColor ?? '#0EA5E9';
 
@@ -50,6 +73,32 @@ export default function FacturasPage() {
 
   useEffect(() => { if (session) load(); }, [session]);
 
+  useEffect(() => {
+    if (!session?.companyId) return;
+    fetch(`/api/sistema/dgii/config?companyId=${session.companyId}`)
+      .then(r => r.json())
+      .then(d => setDgiiConfig({ enabled: !!d.enabled }));
+  }, [session?.companyId]);
+
+  async function handleRetry(saleId: string) {
+    if (!session?.companyId) return;
+    setRetrying(saleId);
+    try {
+      const res = await fetch('/api/sistema/facturas/retry', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId: session.companyId, saleId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      load();
+      setSelected(prev => prev && prev.id === saleId ? { ...prev, dgii: data.dgii } : prev);
+    } catch (e: any) {
+      alert(e.message ?? 'Error al reintentar el envío');
+    } finally {
+      setRetrying(null);
+    }
+  }
+
   const filtered = sales.filter(s => {
     const matchSearch = s.saleNumber.includes(search) ||
       (s.clientName ?? '').toLowerCase().includes(search.toLowerCase()) ||
@@ -60,6 +109,13 @@ export default function FacturasPage() {
 
   const totalITBIS = filtered.reduce((sum, s) => sum + (s.tax ?? 0), 0);
   const totalVentas = filtered.reduce((sum, s) => sum + (s.total ?? 0), 0);
+
+  const gridCols = dgiiConfig?.enabled
+    ? '110px 1fr 150px 140px 110px 100px 80px'
+    : '110px 1fr 80px 110px 100px 80px';
+  const headers = dgiiConfig?.enabled
+    ? ['Número', 'Cliente', 'e-CF', 'Estado DGII', 'Total', 'Método', 'Fecha']
+    : ['Número', 'Cliente', 'NCF', 'Total', 'Método', 'Fecha'];
 
   if (loading) return null;
 
@@ -114,15 +170,17 @@ export default function FacturasPage() {
             placeholder="Buscar por N° factura, cliente o RNC..."
             style={{ flex: 1, minWidth: 200, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit' }}
           />
-          <select
-            value={ncfFilter}
-            onChange={e => setNcfFilter(e.target.value)}
-            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit' }}>
-            <option value="all">Todos los NCF</option>
-            {Object.entries(NCF_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{k} — {v.label.split('— ')[1]}</option>
-            ))}
-          </select>
+          {!dgiiConfig?.enabled && (
+            <select
+              value={ncfFilter}
+              onChange={e => setNcfFilter(e.target.value)}
+              style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit' }}>
+              <option value="all">Todos los NCF</option>
+              {Object.entries(NCF_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{k} — {v.label.split('— ')[1]}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Lista */}
@@ -141,17 +199,19 @@ export default function FacturasPage() {
         ) : (
           <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, overflow: 'hidden' }}>
             {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 80px 110px 100px 80px', padding: '10px 16px', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-              {['Número','Cliente','NCF','Total','Método','Fecha'].map(h => (
+            <div style={{ display: 'grid', gridTemplateColumns: gridCols, padding: '10px 16px', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+              {headers.map(h => (
                 <div key={h} style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
               ))}
             </div>
             {filtered.map((s, i) => {
               const ncf = NCF_LABELS[s.ncfType] ?? NCF_LABELS.B02;
+              const estadoDgii = s.dgii ? (ESTADO_DGII_LABELS[s.dgii.estado] ?? ESTADO_DGII_LABELS.pendiente) : null;
+              const canRetry = s.dgii && (s.dgii.estado === 'error' || s.dgii.estado === 'Rechazado');
               return (
                 <div key={s.id}
                   onClick={() => setSelected(s)}
-                  style={{ display: 'grid', gridTemplateColumns: '110px 1fr 80px 110px 100px 80px', padding: '11px 16px', borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,.05)' : 'none', alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
+                  style={{ display: 'grid', gridTemplateColumns: gridCols, padding: '11px 16px', borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,.05)' : 'none', alignItems: 'center', cursor: 'pointer', transition: 'background .1s' }}
                   onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
                   onMouseOut={e  => (e.currentTarget.style.background = 'transparent')}
                 >
@@ -160,11 +220,34 @@ export default function FacturasPage() {
                     <div style={{ fontSize: '0.82rem', color: '#F8FAFC' }}>{s.clientName || 'Consumidor Final'}</div>
                     {s.clientRnc && <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,.3)', fontFamily: 'monospace' }}>{s.clientRnc}</div>}
                   </div>
-                  <div>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: ncf.bg, color: ncf.color }}>
-                      {s.ncfType}
-                    </span>
-                  </div>
+                  {dgiiConfig?.enabled ? (
+                    <>
+                      <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: s.dgii?.eNCF ? '#F8FAFC' : 'rgba(255,255,255,.3)' }}>
+                        {s.dgii?.eNCF || '—'}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {estadoDgii && (
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: estadoDgii.bg, color: estadoDgii.color }}>
+                            {estadoDgii.label}
+                          </span>
+                        )}
+                        {canRetry && (
+                          <button
+                            onClick={e => { e.stopPropagation(); handleRetry(s.id); }}
+                            disabled={retrying === s.id}
+                            style={{ fontSize: '0.62rem', fontWeight: 700, color: '#38BDF8', background: 'none', border: 'none', cursor: retrying === s.id ? 'default' : 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                            {retrying === s.id ? '...' : 'Reintentar'}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 5, background: ncf.bg, color: ncf.color }}>
+                        {s.ncfType}
+                      </span>
+                    </div>
+                  )}
                   <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC' }}>RD${s.total.toLocaleString()}</div>
                   <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,.45)' }}>
                     {METHOD_LABELS[s.paymentMethod] ?? s.paymentMethod}
@@ -195,7 +278,43 @@ export default function FacturasPage() {
               <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,.4)' }}>
                 {selected.createdAt ? new Date(selected.createdAt).toLocaleString('es-DO') : '—'}
               </div>
-              {(() => {
+              {dgiiConfig?.enabled ? (
+                selected.dgii && (() => {
+                  const estadoDgii = ESTADO_DGII_LABELS[selected.dgii!.estado] ?? ESTADO_DGII_LABELS.pendiente;
+                  const tipoLabel  = TIPOS_ECF.find(t => t.codigo === selected.dgii!.tipoECF)?.label ?? selected.dgii!.tipoECF;
+                  return (
+                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F8FAFC', fontFamily: 'monospace' }}>
+                        {selected.dgii!.eNCF || '—'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.4)' }}>{tipoLabel}</span>
+                        <span style={{ display: 'inline-flex', padding: '3px 12px', borderRadius: 99, background: estadoDgii.bg, fontSize: '0.72rem', fontWeight: 700, color: estadoDgii.color }}>
+                          {estadoDgii.label}
+                        </span>
+                      </div>
+                      {selected.dgii!.error && (
+                        <div style={{ fontSize: '0.7rem', color: '#F87171', maxWidth: 380, textAlign: 'center' }}>{selected.dgii!.error}</div>
+                      )}
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {selected.dgii!.urlQR && (
+                          <a href={selected.dgii!.urlQR} target="_blank" rel="noreferrer" style={{ fontSize: '0.7rem', color: '#38BDF8', textDecoration: 'underline' }}>
+                            Ver comprobante DGII
+                          </a>
+                        )}
+                        {(selected.dgii!.estado === 'error' || selected.dgii!.estado === 'Rechazado') && (
+                          <button
+                            onClick={() => handleRetry(selected.id)}
+                            disabled={retrying === selected.id}
+                            style={{ fontSize: '0.7rem', fontWeight: 700, color: '#38BDF8', background: 'none', border: 'none', cursor: retrying === selected.id ? 'default' : 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                            {retrying === selected.id ? 'Reintentando...' : 'Reintentar envío'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (() => {
                 const ncf = NCF_LABELS[selected.ncfType] ?? NCF_LABELS.B02;
                 return (
                   <div style={{ display: 'inline-flex', marginTop: 8, padding: '3px 12px', borderRadius: 99, background: ncf.bg, fontSize: '0.72rem', fontWeight: 700, color: ncf.color }}>

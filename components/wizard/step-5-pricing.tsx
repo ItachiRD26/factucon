@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { WizardData } from './wizard-shell';
-import { calculatePrice, PRICING, TEMPLATES } from '@/lib/types';
+import { calculatePrice, getPlanTier, PRICING, TEMPLATES } from '@/lib/types';
 
 interface Props {
-  data:   WizardData;
-  onBack: () => void;
+  data:          WizardData;
+  onBack:        () => void;
+  onProvisioned: (companyId: string) => void;
 }
 
 const MODULE_LABELS: Record<string, string> = {
@@ -22,9 +22,8 @@ const MODULE_LABELS: Record<string, string> = {
   multi_warehouse:     'Multi-almacén',
 };
 
-export function Step5Pricing({ data, onBack }: Props) {
+export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
   const { user }   = useAuth();
-  const router     = useRouter();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
@@ -32,6 +31,7 @@ export function Step5Pricing({ data, onBack }: Props) {
   const extraUsers = Math.max(0, data.users.length - 1);
   const paidMods   = data.modules.filter(m => (PRICING.modulesPricing[m] ?? 0) > 0);
   const template   = TEMPLATES.find(t => t.id === data.templateId);
+  const tier       = getPlanTier(total);
 
   async function handleActivate() {
     if (!user) return;
@@ -48,7 +48,7 @@ export function Step5Pricing({ data, onBack }: Props) {
         throw new Error(err.error ?? 'Error al crear el sistema');
       }
       const { companyId } = await res.json();
-      router.push(`/portal/dashboard/empresa/${companyId}`);
+      onProvisioned(companyId);
     } catch (e: any) {
       setError(e.message ?? 'Ocurrió un error. Intenta de nuevo.');
       setLoading(false);
@@ -118,6 +118,11 @@ export function Step5Pricing({ data, onBack }: Props) {
               Primeros 14 días gratis. Luego RD${total.toLocaleString()}/mes.
             </div>
           </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(14,165,233,.2)', fontSize: '0.7rem', color: 'rgba(255,255,255,.45)', lineHeight: 1.7 }}>
+            Plan <strong style={{ color: '#38BDF8' }}>{tier.name}</strong> · incluye{' '}
+            <strong style={{ color: '#F8FAFC' }}>{tier.comprobanteLimit.toLocaleString()} comprobantes/mes</strong>.
+            Cada comprobante extra cuesta RD${tier.overageRate} y se cobra en el ciclo siguiente.
+          </div>
         </div>
       </div>
 
@@ -148,7 +153,7 @@ export function Step5Pricing({ data, onBack }: Props) {
         </button>
         <button onClick={handleActivate} disabled={loading}
           style={{ padding: '12px 32px', borderRadius: 11, background: loading ? 'rgba(14,165,233,.4)' : '#0EA5E9', color: '#fff', fontWeight: 700, fontSize: '0.92rem', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 2px 16px rgba(14,165,233,.35)' }}>
-          {loading ? 'Creando sistema...' : `🚀 Activar — RD$${total.toLocaleString()}/mes`}
+          {loading ? 'Creando sistema...' : '🚀 Crear mi sistema'}
         </button>
       </div>
       <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.25)', textAlign: 'center', marginTop: 12 }}>

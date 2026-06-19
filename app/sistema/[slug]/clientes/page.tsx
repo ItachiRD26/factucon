@@ -2,14 +2,22 @@
 import { useState, useEffect } from 'react';
 import { useSistemaSession } from '@/app/sistema/hooks/use-sistema-session';
 import { SistemaLayout } from '@/app/sistema/layout-component';
+import type { SubtipoJuridica } from '@/lib/dgii/types';
 
 interface Client {
   id: string; name: string; rnc: string; phone: string;
   email: string; address: string; creditLimit: number;
-  balance: number; isActive: boolean;
+  balance: number; isActive: boolean; subtipoFiscal: SubtipoJuridica;
 }
 
-const EMPTY = { name: '', rnc: '', phone: '', email: '', address: '', creditLimit: 0 };
+const SUBTIPOS_FISCALES: { value: SubtipoJuridica; label: string }[] = [
+  { value: 'regular',     label: 'Regular' },
+  { value: 'gobierno',    label: 'Gubernamental' },
+  { value: 'zona_franca', label: 'Zona franca' },
+  { value: 'exportacion', label: 'Exportación' },
+];
+
+const EMPTY = { name: '', rnc: '', phone: '', email: '', address: '', creditLimit: 0, subtipoFiscal: 'regular' as SubtipoJuridica };
 
 export default function ClientesPage() {
   const { session, loading } = useSistemaSession();
@@ -41,7 +49,7 @@ export default function ClientesPage() {
 
   function openEdit(c: Client) {
     setEditing(c);
-    setForm({ name: c.name, rnc: c.rnc, phone: c.phone, email: c.email, address: c.address, creditLimit: c.creditLimit });
+    setForm({ name: c.name, rnc: c.rnc, phone: c.phone, email: c.email, address: c.address, creditLimit: c.creditLimit, subtipoFiscal: c.subtipoFiscal ?? 'regular' });
     setError(''); setShowForm(true);
   }
 
@@ -169,6 +177,13 @@ export default function ClientesPage() {
                 <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle, ciudad..."
                   style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 9, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
                 />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,.45)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipo de cliente fiscal</label>
+                <select value={form.subtipoFiscal} onChange={e => setForm(f => ({ ...f, subtipoFiscal: e.target.value as SubtipoJuridica }))}
+                  style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 9, padding: '8px 12px', color: '#F8FAFC', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}>
+                  {SUBTIPOS_FISCALES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
               </div>
               {error && <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, fontSize: '0.78rem', color: '#F87171' }}>{error}</div>}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

@@ -3,8 +3,28 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Factucon — Sistema de Facturación Personalizable para RD',
-  description: 'Crea tu propio sistema de facturación con NCF, ITBIS y e-CF DGII. Desde RD$800/mes. 14 días gratis.',
+  description: 'Crea tu propio sistema de facturación con subdominio propio, e-CF DGII y API REST. Desde RD$800/mes. 14 días gratis.',
 };
+
+const FAQS: [string, string][] = [
+  ['¿Qué pasa después de los 14 días de prueba?', 'Tu sistema sigue funcionando normalmente. Si vinculaste PayPal, el cobro automático se procesa en su equivalente en USD según tu plan. Si cancelas antes de que termine el trial, no se te cobra nada.'],
+  ['¿Necesito tarjeta de crédito para empezar?', 'No. Tu sistema y subdominio se activan de inmediato al terminar el wizard. Vincular PayPal es el último paso y no genera ningún cobro hasta que termina el período de prueba.'],
+  ['¿Qué es e-CF y mi negocio lo necesita?', 'e-CF (Comprobante Fiscal Electrónico) es el formato de facturación electrónica exigido por la DGII. Si tu RNC está en el calendario de envío obligatorio, activa el módulo e-CF y te guiamos paso a paso por la certificación (TestECF → CertECF → producción).'],
+  ['¿Puedo cambiar de plan o módulos después?', 'Sí. Agrega o quita módulos y usuarios cuando quieras desde tu panel — el precio mensual se recalcula automáticamente, sin penalidades.'],
+  ['¿Qué pasa si supero el límite de comprobantes de mi plan?', 'Tu sistema sigue funcionando sin interrupciones. Cada comprobante adicional tiene un cargo fijo según tu plan (ver tabla de precios), que se suma automáticamente a tu siguiente cobro de PayPal — no se bloquea nada ni se interrumpe el servicio a mitad de mes.'],
+  ['¿Qué tan seguros están mis datos?', 'Cada empresa tiene su propio espacio aislado en la base de datos, protegido por reglas de acceso por usuario. Las credenciales fiscales (certificado .p12 de la DGII) se guardan cifradas por separado.'],
+  ['¿Tengo mi propio subdominio?', 'Sí. Al crear tu sistema, tunegocio.facturacon.cfd se activa automáticamente — listo para compartir con tu equipo.'],
+  ['¿Hay una API para integraciones?', 'Sí. Incluimos una API REST con API keys propias para conectar tu ecommerce, app móvil o sistema de contabilidad con tus clientes, productos y ventas.'],
+  ['¿Cómo cancelo mi suscripción?', 'Desde la sección Facturación de tu panel puedes cancelar la suscripción de PayPal cuando quieras — sin contratos ni penalidades.'],
+];
+
+const COMPARISON: { label: string; factucon: boolean | string; sheet: boolean | string; generic: boolean | string }[] = [
+  { label: 'Facturación e-CF DGII',        factucon: true,             sheet: false,             generic: 'Con costo adicional' },
+  { label: 'Subdominio propio',             factucon: true,             sheet: false,             generic: false },
+  { label: 'API REST para integraciones',   factucon: true,             sheet: false,             generic: 'Plan empresarial' },
+  { label: 'Soporte en español',            factucon: true,             sheet: false,             generic: 'Variable' },
+  { label: 'Precio mensual',                factucon: 'Desde RD$800',   sheet: 'Gratis (manual)', generic: 'RD$3,000+' },
+];
 
 export default function HomePage() {
   return (
@@ -32,7 +52,7 @@ export default function HomePage() {
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {[['#como-funciona','¿Cómo funciona?'],['#plantillas','Plantillas'],['#precios','Precios']].map(([href, label]) => (
+            {[['#como-funciona','¿Cómo funciona?'],['#plantillas','Plantillas'],['#precios','Precios'],['#preguntas','Preguntas']].map(([href, label]) => (
               <a key={href} href={href} style={{ fontSize: '0.82rem', fontWeight: 500, color: '#94A3B8', padding: '6px 12px', borderRadius: 8, textDecoration: 'none', transition: 'color .13s' }}>
                 {label}
               </a>
@@ -51,7 +71,7 @@ export default function HomePage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 0 80px', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 0 60px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 600, height: 600, top: -200, left: -100, background: 'rgba(14,165,233,.06)', filter: 'blur(80px)', borderRadius: '50%', pointerEvents: 'none' }}/>
         <div style={{ position: 'absolute', width: 400, height: 400, bottom: -100, right: 100, background: 'rgba(139,92,246,.05)', filter: 'blur(80px)', borderRadius: '50%', pointerEvents: 'none' }}/>
 
@@ -62,19 +82,22 @@ export default function HomePage() {
             <div style={{ flex: 1, minWidth: 300 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(14,165,233,.1)', border: '1px solid rgba(14,165,233,.25)', borderRadius: 99, padding: '5px 14px', fontSize: '0.75rem', fontWeight: 600, color: '#0EA5E9', marginBottom: 28 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0EA5E9', display: 'inline-block' }}/>
-                Nuevo · Facturación electrónica DGII incluida
+                Nuevo · e-CF DGII y API REST para desarrolladores
               </div>
 
               <h1 style={{ fontSize: 'clamp(2.2rem,4.5vw,3.6rem)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.04em', marginBottom: 24 }}>
-                Tu sistema de<br/>
+                Tu negocio, tu sistema,<br/>
                 <span style={{ background: 'linear-gradient(135deg,#0EA5E9,#38BDF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  facturación propio
+                  facturación electrónica
                 </span><br/>
-                sin pagar fortuna
+                lista para la DGII
               </h1>
 
-              <p style={{ fontSize: '1rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 500, marginBottom: 36 }}>
-                Diseña el sistema de facturación ideal para tu negocio. Elige tu plantilla, activa los módulos que necesitas y en minutos tienes tu propio sistema — con NCF, ITBIS y e-CF DGII integrados.
+              <p style={{ fontSize: '1rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 520, marginBottom: 36 }}>
+                Crea tu sistema de facturación con tu marca y tu propio subdominio
+                (tunegocio.facturacon.cfd). Incluye e-CF homologado ante la DGII, POS,
+                inventario, reportes 606/607 y una API REST para conectar tu ecommerce
+                o tu contador — todo configurable en minutos.
               </p>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 48 }}>
@@ -88,7 +111,7 @@ export default function HomePage() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
-                {[['10+','Plantillas de industria'],['100%','Compatible DGII'],['RD$800','Desde / mes']].map(([val, lbl]) => (
+                {[['10+','Plantillas de industria'],['e-CF','Homologado ante la DGII'],['API REST','Para desarrolladores']].map(([val, lbl]) => (
                   <div key={lbl}>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{val}</div>
                     <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: 3 }}>{lbl}</div>
@@ -130,7 +153,7 @@ export default function HomePage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 70px 65px', padding: '7px 12px', background: 'rgba(255,255,255,.04)', fontSize: '0.58rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
                       <span>Comprobante</span><span>Cliente</span><span>Total</span><span>Estado</span>
                     </div>
-                    {[['B01-0042','C. Méndez','RD$3,420','Pagado','green'],['B02-0041','Consumidor','RD$850','Pagado','green'],['B01-0040','Empresa XYZ','RD$12,600','Pendiente','yellow']].map(([ncf,client,total,status,color]) => (
+                    {[['E32-0042','C. Méndez','RD$3,420','Aceptado','green'],['E32-0041','Consumidor','RD$850','Aceptado','green'],['E32-0040','Empresa XYZ','RD$12,600','En proceso','yellow']].map(([ncf,client,total,status,color]) => (
                       <div key={ncf} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 70px 65px', padding: '9px 12px', fontSize: '0.7rem', color: '#94A3B8', borderBottom: '1px solid rgba(255,255,255,.04)', alignItems: 'center' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '0.62rem', background: 'rgba(14,165,233,.1)', color: '#0EA5E9', border: '1px solid rgba(14,165,233,.2)', borderRadius: 4, padding: '1px 5px', display: 'inline-block' }}>{ncf}</span>
                         <span>{client}</span>
@@ -146,6 +169,22 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── BARRA DE CONFIANZA ── */}
+      <section style={{ padding: '20px 0', borderTop: '1px solid rgba(255,255,255,.06)', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+        <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 24px', display: 'flex', justifyContent: 'center', gap: 36, flexWrap: 'wrap' }}>
+          {[
+            ['🧾','100% conforme DGII (e-CF)'],
+            ['🔌','API REST incluida'],
+            ['🇩🇴','Hecho en RD'],
+            ['⚡','Activación inmediata'],
+          ].map(([icon, label]) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', fontWeight: 600, color: '#94A3B8' }}>
+              <span>{icon}</span>{label}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── COMO FUNCIONA ── */}
       <section id="como-funciona" style={{ padding: '100px 0', position: 'relative' }}>
         <div style={{ maxWidth: 1140, margin: '0 auto', padding: '0 24px' }}>
@@ -155,16 +194,18 @@ export default function HomePage() {
               De cero a facturando<br/>en menos de 10 minutos
             </h2>
             <p style={{ fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 480, margin: '0 auto' }}>
-              Sin instalaciones, sin técnicos. Solo elige, configura y empieza.
+              Sin instalaciones, sin técnicos. Configura tu sistema, pruébalo de inmediato y
+              vincula tu pago cuando estés listo.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 32 }}>
             {[
               ['1','🧩','Elige plantilla','Farmacia, taller, restaurante — la base ideal para tu negocio.'],
               ['2','⚙️','Personaliza módulos','POS, inventario, e-CF y más. Solo lo que necesitas.'],
               ['3','👥','Define usuarios','Cuántas PCs y qué rol tiene cada una. El precio se calcula solo.'],
-              ['4','💳','Paga tu plan','Mensual por PayPal. Sin contratos, cancela cuando quieras.'],
-              ['5','🚀','¡Listo!','Tu subdominio se crea solo. Abre el navegador y empieza.'],
+              ['4','🎨','Tu marca','Logo, color y subdominio — tu sistema, con tu identidad.'],
+              ['5','🚀','Crea tu sistema','Tu subdominio se activa al instante. Entra y pruébalo de una vez.'],
+              ['6','💳','Vincula tu pago','14 días gratis con PayPal. No se cobra nada hasta que termine el trial.'],
             ].map(([num, icon, title, sub]) => (
               <div key={num} style={{ textAlign: 'center' }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', border: '2px solid rgba(14,165,233,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '0.85rem', fontWeight: 800, color: '#0EA5E9', background: 'rgba(14,165,233,.05)' }}>
@@ -172,7 +213,7 @@ export default function HomePage() {
                 </div>
                 <div style={{ fontSize: '1.6rem', marginBottom: 10 }}>{icon}</div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 6 }}>{title}</div>
-                <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.65 }}>{sub}</div>
+                <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.65, maxWidth: 220, margin: '0 auto' }}>{sub}</div>
               </div>
             ))}
           </div>
@@ -239,6 +280,8 @@ export default function HomePage() {
               ['📈','Reportes y análisis','Ventas, ITBIS, top productos. Exporta formularios 606 y 607.','rgba(249,115,22,.1)'],
               ['💳','Cuentas por cobrar','Controla quién te debe y cuánto. Recordatorios automáticos.','rgba(16,185,129,.1)'],
               ['🏪','Módulo de compras','Registra compras a proveedores y actualiza inventario.','rgba(139,92,246,.1)'],
+              ['🏛️','Certificación DGII guiada','Te acompañamos paso a paso de TestECF a CertECF y producción ante la DGII.','rgba(99,102,241,.1)'],
+              ['🔌','API para desarrolladores','API REST con API keys propias para conectar tu ecommerce, app o sistema externo.','rgba(56,189,248,.1)'],
             ].map(([icon, title, sub, bg]) => (
               <div key={title as string} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '26px' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: bg as string, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', marginBottom: 16 }}>{icon}</div>
@@ -258,14 +301,16 @@ export default function HomePage() {
             <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.4rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 14 }}>
               Paga solo por lo que usas
             </h2>
-            <p style={{ fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 480, margin: '0 auto' }}>
-              Precio base + módulos que actives + usuarios que necesites. Calculado en tiempo real en el wizard.
+            <p style={{ fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 520, margin: '0 auto' }}>
+              Precio base + módulos que actives + usuarios que necesites. Cada plan incluye un número de
+              comprobantes (facturas) al mes — el excedente se cobra por unidad en tu siguiente ciclo.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 18 }}>
             {[
               {
                 name: 'Starter', price: 'RD$800', cycle: 'Base · 1 usuario',
+                comprobantes: '500', overage: 6,
                 desc: 'Para pequeños negocios que necesitan facturar y llevar control básico.',
                 features: ['POS (punto de venta)','Control de inventario','Cotizaciones','NCF B01, B02, B14','Reportes básicos','Asistente IA'],
                 missing: ['e-CF DGII','CRM de clientes','Módulo de compras'],
@@ -273,6 +318,7 @@ export default function HomePage() {
               },
               {
                 name: 'Pro', price: 'RD$1,550', cycle: 'Base + e-CF + CRM · 3 usuarios',
+                comprobantes: '1,000', overage: 5,
                 desc: 'Para negocios en crecimiento que necesitan facturación electrónica.',
                 features: ['Todo el plan Starter','Facturación e-CF DGII','CRM básico de clientes','3 usuarios incluidos','Reportes 606 y 607','Soporte prioritario'],
                 missing: ['Módulo de compras','Multi-almacén'],
@@ -280,8 +326,17 @@ export default function HomePage() {
               },
               {
                 name: 'Business', price: 'RD$2,450', cycle: 'Todo incluido · 10 usuarios',
+                comprobantes: '3,000', overage: 4,
                 desc: 'La solución completa para empresas que necesitan todo el stack.',
                 features: ['Todo el plan Pro','Módulo de compras','Cuentas por cobrar','Multi-almacén','10 usuarios incluidos','Soporte dedicado'],
+                missing: [],
+                featured: false,
+              },
+              {
+                name: 'Enterprise', price: 'Desde RD$3,800', cycle: 'Todo incluido · alto volumen',
+                comprobantes: '+3,000', overage: 3,
+                desc: 'Para cadenas y negocios de alto volumen — o un plan a tu medida.',
+                features: ['Todo el plan Business','Usuarios y módulos a tu medida','El excedente más económico de todos los planes','Onboarding asistido'],
                 missing: [],
                 featured: false,
               },
@@ -301,7 +356,11 @@ export default function HomePage() {
                 <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#F8FAFC', lineHeight: 1, marginBottom: 4 }}>
                   {plan.price}<span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#475569' }}>/mes</span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: 20 }}>{plan.cycle}</div>
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: 16 }}>{plan.cycle}</div>
+                <div style={{ background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.15)', borderRadius: 10, padding: '10px 12px', marginBottom: 18, fontSize: '0.72rem', color: '#94A3B8', lineHeight: 1.7 }}>
+                  <strong style={{ color: '#38BDF8' }}>🧾 {plan.comprobantes} comprobantes/mes</strong> incluidos.
+                  Excedente: RD${plan.overage} por comprobante extra (se cobra en el ciclo siguiente).
+                </div>
                 <div style={{ fontSize: '0.78rem', color: '#94A3B8', lineHeight: 1.7, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,.08)', marginBottom: 18 }}>{plan.desc}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 24 }}>
                   {plan.features.map(f => (
@@ -331,11 +390,76 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div style={{ maxWidth: 560, margin: '28px auto 0', background: 'rgba(245,158,11,.05)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#FCD34D', marginBottom: 6 }}>📌 Política de suscripción</div>
+          <div style={{ maxWidth: 620, margin: '28px auto 0', background: 'rgba(245,158,11,.05)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#FCD34D', marginBottom: 6 }}>📌 Cómo funciona el pago</div>
             <div style={{ fontSize: '0.73rem', color: '#475569', lineHeight: 1.8 }}>
-              2 días de gracia si vence el pago. Datos siempre seguros. Más de 30 días inactivo requiere tarifa de reactivación de <strong style={{ color: '#94A3B8' }}>RD$500</strong>.
+              Tu sistema se activa de inmediato. Vinculas PayPal cuando quieras — 14 días gratis, sin cobro
+              hasta que termine el trial. El cobro automático se procesa en su equivalente en dólares (USD).
+              2 días de gracia si vence el pago; más de 30 días inactivo requiere tarifa de reactivación de{' '}
+              <strong style={{ color: '#94A3B8' }}>RD$500</strong>.
+              <br/><br/>
+              Cada plan incluye un número de comprobantes al mes (ver arriba). Si lo superas, cada
+              comprobante extra tiene un cargo fijo según tu plan, que se suma automáticamente a tu
+              siguiente cobro de PayPal — tu sistema sigue funcionando sin interrupciones.
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PREGUNTAS FRECUENTES ── */}
+      <section id="preguntas" style={{ padding: '100px 0', background: 'linear-gradient(180deg,transparent,rgba(14,165,233,.03),transparent)' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <Tag center>Preguntas frecuentes</Tag>
+            <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.4rem)', fontWeight: 800, letterSpacing: '-0.03em' }}>
+              ¿Tienes dudas? Aquí las respondemos
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {FAQS.map(([q, a]) => (
+              <details key={q} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '4px 20px' }}>
+                <summary style={{ padding: '14px 0', fontSize: '0.88rem', fontWeight: 700, color: '#F8FAFC', cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  {q}
+                  <span className="faq-icon" style={{ flexShrink: 0, color: '#0EA5E9', fontSize: '1.1rem', lineHeight: 1, transition: 'transform .2s', display: 'inline-block' }}>+</span>
+                </summary>
+                <p style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.8, paddingBottom: 16, margin: 0 }}>{a}</p>
+              </details>
+            ))}
+          </div>
+          <style>{`
+            details > summary::-webkit-details-marker { display: none; }
+            details[open] .faq-icon { transform: rotate(45deg); }
+          `}</style>
+        </div>
+      </section>
+
+      {/* ── POR QUÉ FACTUCON ── */}
+      <section style={{ padding: '100px 0' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <Tag center>Por qué Factucon</Tag>
+            <h2 style={{ fontSize: 'clamp(1.6rem,3vw,2.4rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 14 }}>
+              La alternativa real a la hoja<br/>de cálculo y al software genérico
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.8, maxWidth: 480, margin: '0 auto' }}>
+              Compara lo que obtienes con Factucon frente a las opciones de siempre.
+            </p>
+          </div>
+          <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(255,255,255,.08)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', background: 'rgba(14,165,233,.08)' }}>
+              <div/>
+              <div style={{ padding: '14px 12px', fontSize: '0.8rem', fontWeight: 800, color: '#0EA5E9', textAlign: 'center' }}>Factucon</div>
+              <div style={{ padding: '14px 12px', fontSize: '0.8rem', fontWeight: 700, color: '#94A3B8', textAlign: 'center' }}>Hoja de cálculo</div>
+              <div style={{ padding: '14px 12px', fontSize: '0.8rem', fontWeight: 700, color: '#94A3B8', textAlign: 'center' }}>Software genérico</div>
+            </div>
+            {COMPARISON.map((row, i) => (
+              <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', borderTop: '1px solid rgba(255,255,255,.06)', background: i % 2 === 0 ? 'rgba(255,255,255,.02)' : 'transparent' }}>
+                <div style={{ padding: '14px 18px', fontSize: '0.82rem', fontWeight: 600, color: '#F8FAFC', display: 'flex', alignItems: 'center' }}>{row.label}</div>
+                <Cell value={row.factucon} highlight/>
+                <Cell value={row.sheet}/>
+                <Cell value={row.generic}/>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -346,13 +470,14 @@ export default function HomePage() {
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 24px', position: 'relative' }}>
           <Tag center>Empieza hoy</Tag>
           <h2 style={{ fontSize: 'clamp(1.8rem,4vw,3rem)', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.04em', margin: '20px 0 18px' }}>
-            Deja de pagar de más por<br/>un sistema que no se adapta<br/>
+            Tu sistema, tu marca,<br/>
             <span style={{ background: 'linear-gradient(135deg,#0EA5E9,#38BDF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              a tu negocio
+              certificado ante la DGII
             </span>
           </h2>
           <p style={{ fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.8, marginBottom: 36 }}>
-            14 días gratis, sin tarjeta de crédito. Configura tu sistema en minutos.
+            14 días gratis, sin tarjeta de crédito. Crea tu sistema, pruébalo de inmediato
+            y vincula tu pago cuando estés listo.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
             <Link href="/auth/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.95rem', fontWeight: 700, color: '#fff', padding: '14px 32px', borderRadius: 12, background: '#0EA5E9', textDecoration: 'none', boxShadow: '0 2px 20px rgba(14,165,233,.4)' }}>
@@ -363,7 +488,7 @@ export default function HomePage() {
             </a>
           </div>
           <p style={{ fontSize: '0.72rem', color: '#475569', marginTop: 16 }}>
-            ✓ Sin tarjeta · ✓ Cancela cuando quieras · ✓ NCF y e-CF incluidos
+            ✓ Sin tarjeta al inicio · ✓ e-CF y API incluidos · ✓ Cancela cuando quieras
           </p>
         </div>
       </section>
@@ -387,15 +512,15 @@ export default function HomePage() {
               </p>
             </div>
             {[
-              ['Producto', ['¿Cómo funciona?','Plantillas','Funcionalidades','Precios']],
-              ['Empresa',  ['Sobre nosotros','Blog','Contacto','Soporte']],
-              ['Legal',    ['Términos de servicio','Política de privacidad','DGII']],
+              ['Producto', [['¿Cómo funciona?','#como-funciona'],['Plantillas','#plantillas'],['Funcionalidades','#'],['Precios','#precios'],['Preguntas frecuentes','#preguntas'],['API para desarrolladores','#']]],
+              ['Empresa',  [['Sobre nosotros','#'],['Blog','#'],['Contacto','#'],['Soporte','#']]],
+              ['Legal',    [['Términos de servicio','#'],['Política de privacidad','#'],['DGII','#']]],
             ].map(([title, links]) => (
               <div key={title as string}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8', marginBottom: 14 }}>{title}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94A3B8', marginBottom: 14 }}>{title as string}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(links as string[]).map(l => (
-                    <a key={l} href="#" style={{ fontSize: '0.75rem', color: '#475569', textDecoration: 'none' }}>{l}</a>
+                  {(links as [string, string][]).map(([label, href]) => (
+                    <a key={label} href={href} style={{ fontSize: '0.75rem', color: '#475569', textDecoration: 'none' }}>{label}</a>
                   ))}
                 </div>
               </div>
@@ -425,6 +550,28 @@ function Tag({ children, center }: { children: React.ReactNode; center?: boolean
       marginBottom: 16, ...(center ? { margin: '0 auto 16px', display: 'flex', width: 'fit-content' } : {}),
     }}>
       {children}
+    </div>
+  );
+}
+
+function Cell({ value, highlight }: { value: boolean | string; highlight?: boolean }) {
+  if (value === true) {
+    return (
+      <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: highlight ? 'rgba(14,165,233,.04)' : 'transparent' }}>
+        <svg width="16" height="16" fill="none" stroke="#10B981" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    );
+  }
+  if (value === false) {
+    return (
+      <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: highlight ? 'rgba(14,165,233,.04)' : 'transparent' }}>
+        <svg width="14" height="14" fill="none" stroke="#475569" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: '14px 12px', textAlign: 'center', fontSize: '0.74rem', fontWeight: highlight ? 700 : 500, color: highlight ? '#F8FAFC' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', background: highlight ? 'rgba(14,165,233,.04)' : 'transparent' }}>
+      {value}
     </div>
   );
 }

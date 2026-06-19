@@ -1,3 +1,5 @@
+import type { TipoECF, DgiiAmbiente } from '@/lib/dgii/types';
+
 // ── Roles ────────────────────────────────────────────────────
 export type UserRole = 'superadmin' | 'owner' | 'admin' | 'cashier';
 
@@ -58,6 +60,19 @@ export interface ActivationCode {
   createdAt:   Date;
 }
 
+// ── Configuración e-CF (DGII) por empresa ────────────────────
+export interface DgiiConfig {
+  enabled:            boolean;
+  ambiente:           DgiiAmbiente;        // testecf | certecf | ecf
+  rnc:                string;              // RNC certificado ante DGII
+  actividadEconomica: string;              // requerido por XSD <ActividadEconomica>
+  certificadoCargado: boolean;             // true si ya subió su .p12 (ver dgii_config/credenciales)
+  // Fecha de vencimiento autorizada por DGII para cada secuencia (YYYY-MM-DD)
+  vencimientos?: Partial<Record<TipoECF, string>>;
+  // ISO de la última vez que el tenant confirmó un avance de ambiente (testecf→certecf→ecf)
+  certificacionConfirmadaAt?: string;
+}
+
 // ── Empresa / Sistema de facturación ─────────────────────────
 export interface Company {
   id:          string;
@@ -81,7 +96,7 @@ export interface Company {
   maxUsers:    number;
   codes:       ActivationCode[];
 
-  // Fiscal RD
+  // Fiscal RD — NCF (legado, solo para empresas no certificadas en e-CF)
   ncfConfig?: {
     enabled: boolean;
     sequences: {
@@ -92,6 +107,12 @@ export interface Company {
       B16?: { current: number; limit: number };
     };
   };
+
+  // Fiscal RD — e-CF (Comprobante Fiscal Electrónico DGII)
+  // Reemplaza a ncfConfig para empresas certificadas. El .p12 y su contraseña
+  // se guardan cifrados por separado en companies/{id}/dgii_config/credenciales
+  // (ver lib/dgii/cert-crypto.ts) — nunca en este documento.
+  dgiiConfig?: DgiiConfig;
 
   // Configuración general
   settings: {
@@ -105,7 +126,13 @@ export interface Company {
   subscription: {
     status:              SubscriptionStatus;
     planPrice:           number;           // precio calculado en wizard
+    planId:              PlanId;           // tier asignado al provisionar, vía getPlanTier(planPrice)
+    comprobanteLimit:    number;           // comprobantes incluidos por mes (según el tier)
+    comprobantesUsed:    number;           // contador del ciclo actual, reinicia al renovar
+    overageRate:         number;           // RD$ por comprobante extra (cargo en el ciclo siguiente)
+    pendingOverageDOP:   number;           // excedente del último ciclo, ya aplicado al próximo cobro
     paypalSubscriptionId?: string;
+    paypalStatus?:       string;           // estado crudo de PayPal: APPROVAL_PENDING, ACTIVE, etc.
     currentPeriodStart:  Date;
     currentPeriodEnd:    Date;
     trialEndsAt?:        Date;
@@ -158,6 +185,31 @@ export function calculatePrice(modules: ModuleId[], users: number): number {
     (sum, m) => sum + (PRICING.modulesPricing[m] ?? 0), 0
   );
   return base + extraUsers + moduleCost;
+}
+
+// ── Planes por volumen de comprobantes ───────────────────────
+// Cada plan incluye un límite de comprobantes (facturas/ventas) por mes. Si
+// la empresa lo supera, cada comprobante extra genera un cargo (overageRate)
+// que se aplica automáticamente al ciclo siguiente de PayPal.
+export type PlanId = 'starter' | 'pro' | 'business' | 'enterprise';
+
+export interface PlanTier {
+  id:               PlanId;
+  name:             string;
+  maxPrice:         number;   // precio (RD$/mes) máximo para entrar en este tier
+  comprobanteLimit: number;   // comprobantes incluidos por mes
+  overageRate:      number;   // RD$ por comprobante extra
+}
+
+export const PLAN_TIERS: PlanTier[] = [
+  { id: 'starter',    name: 'Starter',    maxPrice: 1200,     comprobanteLimit: 500,  overageRate: 6 },
+  { id: 'pro',        name: 'Pro',        maxPrice: 2200,     comprobanteLimit: 1000, overageRate: 5 },
+  { id: 'business',   name: 'Business',   maxPrice: 3800,     comprobanteLimit: 3000, overageRate: 4 },
+  { id: 'enterprise', name: 'Enterprise', maxPrice: Infinity, comprobanteLimit: 8000, overageRate: 3 },
+];
+
+export function getPlanTier(monthlyPrice: number): PlanTier {
+  return PLAN_TIERS.find(t => monthlyPrice <= t.maxPrice) ?? PLAN_TIERS[PLAN_TIERS.length - 1];
 }
 
 // ── Templates de industria ───────────────────────────────────
