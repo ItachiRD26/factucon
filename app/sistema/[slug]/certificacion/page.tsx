@@ -230,11 +230,31 @@ export default function CertificacionPage() {
           </StepCard>
 
           <StepCard n={3} title="Firma digital y verificación de datos" status="info" color={color}>
+            <p style={TEXT_STYLE}>
+              La firma digital es un certificado <strong style={{ color: '#F8FAFC' }}>.p12</strong>{' '}
+              (también llamado &quot;token&quot; o &quot;e-cédula&quot;) que prueba legalmente quién emite cada
+              comprobante. No la emite Factucon ni la DGII directamente — se tramita ante una{' '}
+              <strong style={{ color: '#F8FAFC' }}>entidad certificadora autorizada</strong> (ej.
+              CamerFirma, INDOTEL lista las autorizadas). Pasos generales:
+            </p>
             <ul style={LIST_STYLE}>
-              <li>Verifica que tu certificado .p12 corresponda al RNC autorizado por la DGII</li>
-              <li>Confirma que la actividad económica registrada coincida con la de la DGII</li>
-              <li>Registra las fechas de vencimiento de las secuencias autorizadas para cada tipo de e-CF</li>
+              <li>Solicita el certificado de firma digital con tus datos personales o de la empresa
+                ante una entidad certificadora autorizada — usualmente toma entre 1 y 5 días.</li>
+              <li>Al recibirlo, descarga el archivo <strong style={{ color: '#F8FAFC' }}>.p12</strong>{' '}
+                y guarda bien su contraseña — la necesitarás para cargarlo en el paso 4.</li>
+              <li><strong style={{ color: '#FCD34D' }}>Crítico:</strong> el nombre completo del
+                titular de la firma debe coincidir EXACTAMENTE con el nombre del representante
+                legal registrado en la Oficina Virtual de la DGII para tu RNC — si no coincide, la
+                DGII rechaza la solicitud de facturador electrónico.</li>
+              <li>Verifica que tu certificado .p12 corresponda al RNC autorizado por la DGII.</li>
+              <li>Confirma que la actividad económica registrada coincida con la de la DGII.</li>
+              <li>Registra las fechas de vencimiento de las secuencias autorizadas para cada tipo de
+                e-CF (te las da la DGII al aprobar tu solicitud).</li>
             </ul>
+            <Banner type="warn">
+              Si tu certificado vence o el nombre no coincide, deberás tramitar uno nuevo — verifica
+              esto ANTES de avanzar a las pruebas TestECF (paso 5) para no perder tiempo.
+            </Banner>
           </StepCard>
 
           <StepCard n={4} title="Certificado digital (.p12)" status={cfg.certificadoCargado ? 'done' : 'warn'} color={color}>

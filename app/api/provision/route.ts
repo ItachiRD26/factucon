@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { generateCodesForCompany } from '@/lib/db/codes';
-import { SubscriptionStatus, ModuleId, TemplateId, ActivationCode, calculatePrice, getPlanTier, PRICING } from '@/lib/types';
+import { SubscriptionStatus, TemplateId, BusinessKind, PlanId, ActivationCode, calculatePlanPrice, getModulesForBusiness, PLAN_TIERS, PRICING } from '@/lib/types';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
       email,
       primaryColor,
       templateId,
-      modules,
+      businessKind,
+      planId,
       users,
     } = body;
 
@@ -50,9 +51,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Calcular precio y tier ─────────────────────────────────
-    const planPrice = calculatePrice(modules as ModuleId[], users.length);
-    const tier       = getPlanTier(planPrice);
+    // ── Módulos automáticos según el negocio + precio del plan elegido ──
+    const modules   = getModulesForBusiness(businessKind as BusinessKind);
+    const planPrice = calculatePlanPrice(planId as PlanId, users.length);
+    const tier       = PLAN_TIERS.find(t => t.id === planId) ?? PLAN_TIERS[0];
 
     // ── Timestamps ────────────────────────────────────────────
     const now      = Timestamp.now();
@@ -72,7 +74,8 @@ export async function POST(req: NextRequest) {
       email:        email        || '',
       primaryColor: primaryColor || '#0EA5E9',
       templateId:   templateId  as TemplateId,
-      modules:      modules      as ModuleId[],
+      businessKind: businessKind as BusinessKind,
+      modules,
       maxUsers:     users.length,
       codes:        [],
       settings: {

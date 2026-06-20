@@ -1,17 +1,18 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Step1Template } from './step-1-template';
-import { Step2Modules }  from './step-2-modules';
-import { Step3Users }    from './step-3-users';
-import { Step4Branding } from './step-4-branding';
-import { Step5Pricing }  from './step-5-pricing';
-import { Step6Payment }  from './step-6-payment';
-import { ModuleId, TemplateId, TEMPLATES } from '@/lib/types';
+import { Step1Template }   from './step-1-template';
+import { Step3Users }      from './step-3-users';
+import { Step4Branding }   from './step-4-branding';
+import { StepPricingPlan } from './step-pricing-plan';
+import { Step5Pricing }    from './step-5-pricing';
+import { Step6Payment }    from './step-6-payment';
+import { BusinessKind, PlanId, TemplateId, TEMPLATES } from '@/lib/types';
 
 export interface WizardData {
   templateId:   TemplateId;
-  modules:      ModuleId[];
+  businessKind: BusinessKind;
+  planId:       PlanId;
   users:        { role: string; label: string }[];
   name:         string;
   slug:         string;
@@ -24,16 +25,17 @@ export interface WizardData {
 
 const STEPS = [
   { num: 1, label: 'Plantilla' },
-  { num: 2, label: 'Módulos'   },
-  { num: 3, label: 'Usuarios'  },
-  { num: 4, label: 'Tu marca'  },
+  { num: 2, label: 'Usuarios'  },
+  { num: 3, label: 'Tu marca'  },
+  { num: 4, label: 'Plan'      },
   { num: 5, label: 'Crear sistema' },
   { num: 6, label: 'Pago'      },
 ];
 
 const INITIAL: WizardData = {
   templateId:   'custom',
-  modules:      ['pos', 'inventory', 'reports'],
+  businessKind: 'ambos',
+  planId:       'starter',
   users:        [{ role: 'owner', label: 'Propietario' }],
   name:         '',
   slug:         '',
@@ -99,10 +101,10 @@ export function WizardShell() {
 
       {/* Step content */}
       <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '28px' }}>
-        {step === 1 && <Step1Template data={data} onUpdate={update} onNext={next} />}
-        {step === 2 && <Step2Modules  data={data} onUpdate={update} onNext={next} onBack={back} />}
-        {step === 3 && <Step3Users    data={data} onUpdate={update} onNext={next} onBack={back} />}
-        {step === 4 && <Step4Branding data={data} onUpdate={update} onNext={next} onBack={back} />}
+        {step === 1 && <Step1Template   data={data} onUpdate={update} onNext={next} />}
+        {step === 2 && <Step3Users      data={data} onUpdate={update} onNext={next} onBack={back} />}
+        {step === 3 && <Step4Branding   data={data} onUpdate={update} onNext={next} onBack={back} />}
+        {step === 4 && <StepPricingPlan data={data} onUpdate={update} onNext={next} onBack={back} />}
         {step === 5 && (
           <Step5Pricing
             data={data}

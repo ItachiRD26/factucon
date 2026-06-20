@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardData } from './wizard-shell';
-import { calculatePrice, getPlanTier } from '@/lib/types';
+import { calculatePlanPrice, PLAN_TIERS } from '@/lib/types';
 import { dopToUsd } from '@/lib/paypal/config';
 
 interface Props {
@@ -14,9 +14,9 @@ export function Step6Payment({ data }: Props) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
-  const total    = calculatePrice(data.modules, data.users.length);
+  const tier     = PLAN_TIERS.find(t => t.id === data.planId) ?? PLAN_TIERS[0];
+  const total    = calculatePlanPrice(tier.id, data.users.length);
   const totalUSD = dopToUsd(total);
-  const tier     = getPlanTier(total);
 
   async function handleConnect() {
     if (!data.companyId || loading) return;

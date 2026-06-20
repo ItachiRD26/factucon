@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { WizardData } from './wizard-shell';
-import { calculatePrice, getPlanTier, PRICING, TEMPLATES } from '@/lib/types';
+import { PreviewModal } from './preview-modal';
+import { calculatePlanPrice, getModulesForBusiness, PLAN_TIERS, PRICING, TEMPLATES } from '@/lib/types';
 
 interface Props {
   data:          WizardData;
@@ -24,14 +25,15 @@ const MODULE_LABELS: Record<string, string> = {
 
 export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
   const { user }   = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error,   setError]     = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
-  const total      = calculatePrice(data.modules, data.users.length);
+  const tier       = PLAN_TIERS.find(t => t.id === data.planId) ?? PLAN_TIERS[0];
+  const total      = calculatePlanPrice(tier.id, data.users.length);
   const extraUsers = Math.max(0, data.users.length - 1);
-  const paidMods   = data.modules.filter(m => (PRICING.modulesPricing[m] ?? 0) > 0);
+  const modules    = getModulesForBusiness(data.businessKind);
   const template   = TEMPLATES.find(t => t.id === data.templateId);
-  const tier       = getPlanTier(total);
 
   async function handleActivate() {
     if (!user) return;
@@ -79,7 +81,12 @@ export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '1.2rem' }}>{template?.icon}</span>
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>{template?.name}</span>
+              <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,.35)' }}>· {data.businessKind}</span>
             </div>
+            <button type="button" onClick={() => setShowPreview(true)}
+              style={{ marginTop: 10, fontSize: '0.72rem', fontWeight: 700, color: '#38BDF8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', padding: 0 }}>
+              👁️ Ver preview de mi sistema
+            </button>
           </div>
 
           <div style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '14px 16px' }}>
@@ -101,13 +108,10 @@ export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
             Desglose del precio
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-            <PriceRow label="Plan base (1 usuario)" val={`RD$${PRICING.basePrice}`} />
+            <PriceRow label={`Plan ${tier.name} (1 usuario)`} val={`RD$${tier.price.toLocaleString()}`} />
             {extraUsers > 0 && (
-              <PriceRow label={`${extraUsers} usuario${extraUsers > 1 ? 's' : ''} extra`} val={`+RD$${extraUsers * PRICING.pricePerUser}`} />
+              <PriceRow label={`${extraUsers} usuario${extraUsers > 1 ? 's' : ''} extra`} val={`+RD$${(extraUsers * PRICING.pricePerUser).toLocaleString()}`} />
             )}
-            {paidMods.map(m => (
-              <PriceRow key={m} label={MODULE_LABELS[m] ?? m} val={`+RD$${PRICING.modulesPricing[m]}`} />
-            ))}
           </div>
           <div style={{ borderTop: '1px solid rgba(14,165,233,.2)', paddingTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -126,13 +130,13 @@ export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
         </div>
       </div>
 
-      {/* Módulos activos */}
+      {/* Módulos incluidos (automáticos según tipo de negocio) */}
       <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
         <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.4)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-          Módulos activos ({data.modules.length})
+          Incluido en tu sistema ({modules.length} módulos)
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {data.modules.map(m => (
+          {modules.map(m => (
             <span key={m} style={{ fontSize: '0.68rem', fontWeight: 600, padding: '3px 9px', borderRadius: 6, background: 'rgba(14,165,233,.1)', color: '#38BDF8', border: '1px solid rgba(14,165,233,.2)' }}>
               {MODULE_LABELS[m] ?? m}
             </span>
@@ -159,6 +163,8 @@ export function Step5Pricing({ data, onBack, onProvisioned }: Props) {
       <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.25)', textAlign: 'center', marginTop: 12 }}>
         14 días gratis · Cancela cuando quieras · Sin contrato
       </p>
+
+      {showPreview && <PreviewModal data={data} onClose={() => setShowPreview(false)} />}
     </div>
   );
 }

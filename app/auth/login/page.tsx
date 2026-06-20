@@ -9,13 +9,18 @@ export default function LoginPage() {
   const { login, loginGoogle, user, loading } = useAuth();
   const router = useRouter();
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [busy,     setBusy]     = useState(false);
+  const [email,       setEmail]       = useState('');
+  const [password,    setPassword]    = useState('');
+  const [error,       setError]       = useState('');
+  const [busy,        setBusy]        = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
+  // Redirige solo cuando la sesión (cookie + portalUser) ya terminó de
+  // cargar — hacerlo inmediatamente después de login()/loginGoogle() causa
+  // una condición de carrera: la cookie que protege /portal/dashboard del
+  // lado servidor todavía se está escribiendo de forma asíncrona.
   useEffect(() => {
-    if (!loading && user) router.push('/portal/dashboard');
+    if (!loading && user) router.replace('/portal/dashboard');
   }, [user, loading, router]);
 
   async function handleLogin(e: React.FormEvent) {
@@ -23,10 +28,9 @@ export default function LoginPage() {
     setError(''); setBusy(true);
     try {
       await login(email, password);
-      router.push('/portal/dashboard');
+      setRedirecting(true);
     } catch (err: any) {
       setError(friendlyError(err.code));
-    } finally {
       setBusy(false);
     }
   }
@@ -35,15 +39,15 @@ export default function LoginPage() {
     setError(''); setBusy(true);
     try {
       await loginGoogle();
-      router.push('/portal/dashboard');
+      setRedirecting(true);
     } catch (err: any) {
       setError(friendlyError(err.code));
-    } finally {
       setBusy(false);
     }
   }
 
   if (loading) return <FullLoader />;
+  if (redirecting) return <FullLoader />;
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>

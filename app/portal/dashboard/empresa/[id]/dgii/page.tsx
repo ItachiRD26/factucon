@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DGII_AMBIENTES, TIPOS_ECF, type DgiiAmbiente, type TipoECF } from '@/lib/dgii/types';
 import { hasPaidPlan } from '@/lib/subscriptions/gates';
 import type { SubscriptionStatus } from '@/lib/types';
+import { validarRNCOCedula } from '@/lib/dgii/validar-rnc';
 
 interface DgiiConfigState {
   enabled:            boolean;
@@ -33,6 +34,23 @@ export default function DgiiConfigPage() {
   const [success, setSuccess] = useState('');
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('trial');
   const canCertify = hasPaidPlan(subscriptionStatus);
+  const [rncStatus, setRncStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [rncName,   setRncName]   = useState('');
+
+  async function handleRncBlur() {
+    setRncName('');
+    if (!config.rnc.trim()) { setRncStatus('idle'); return; }
+    if (!validarRNCOCedula(config.rnc)) { setRncStatus('invalid'); return; }
+    setRncStatus('checking');
+    try {
+      const res = await fetch(`/api/validate-rnc?number=${encodeURIComponent(config.rnc)}`);
+      const d = await res.json();
+      if (d.valid) { setRncStatus('valid'); setRncName(d.name ?? ''); }
+      else setRncStatus('invalid');
+    } catch {
+      setRncStatus('idle');
+    }
+  }
 
   // Certificado .p12
   const [certFile,     setCertFile]     = useState<File | null>(null);
@@ -156,7 +174,14 @@ export default function DgiiConfigPage() {
         <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: '20px' }}>
           <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: 14 }}>Datos fiscales</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="RNC certificado ante DGII *" value={config.rnc} onChange={v => setConfig(c => ({ ...c, rnc: v }))} placeholder="131234567" />
+            <div>
+              <Field label="RNC certificado ante DGII *" value={config.rnc}
+                onChange={v => { setConfig(c => ({ ...c, rnc: v })); setRncStatus('idle'); }}
+                onBlur={handleRncBlur} placeholder="131234567" />
+              {rncStatus === 'checking' && <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.4)', marginTop: 5 }}>Verificando con la DGII...</p>}
+              {rncStatus === 'valid'    && <p style={{ fontSize: '0.68rem', color: '#34D399', marginTop: 5 }}>✓ RNC válido{rncName ? ` — ${rncName}` : ''}</p>}
+              {rncStatus === 'invalid'  && <p style={{ fontSize: '0.68rem', color: '#F87171', marginTop: 5 }}>No se pudo verificar este RNC. Revisa el número.</p>}
+            </div>
             <Field label="Actividad económica *" value={config.actividadEconomica} onChange={v => setConfig(c => ({ ...c, actividadEconomica: v }))} placeholder="Comercio al por menor" />
             <div style={{ gridColumn: '1/-1' }}>
               <label style={LABEL_STYLE}>Ambiente DGII</label>
@@ -256,15 +281,16 @@ const INPUT_STYLE: React.CSSProperties = {
 
 const SELECT_STYLE: React.CSSProperties = { ...INPUT_STYLE };
 
-function Field({ label, value, onChange, placeholder, type = 'text', disabled }: {
+function Field({ label, value, onChange, placeholder, type = 'text', disabled, onBlur }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; disabled?: boolean;
+  placeholder?: string; type?: string; disabled?: boolean; onBlur?: () => void;
 }) {
   return (
     <div>
       <label style={LABEL_STYLE}>{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         placeholder={placeholder} disabled={disabled}
+        onBlurCapture={onBlur}
         style={INPUT_STYLE}
         onFocus={e => (e.target.style.borderColor = '#0EA5E9')}
         onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.12)')}

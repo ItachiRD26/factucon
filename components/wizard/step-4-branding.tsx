@@ -1,5 +1,7 @@
 'use client';
+import { useState } from 'react';
 import { WizardData } from './wizard-shell';
+import { validarRNCOCedula } from '@/lib/dgii/validar-rnc';
 
 interface Props {
   data: WizardData;
@@ -11,12 +13,37 @@ interface Props {
 const COLORS = ['#0EA5E9','#10B981','#8B5CF6','#EF4444','#F59E0B','#EC4899','#14B8A6','#F97316'];
 
 export function Step4Branding({ data, onUpdate, onNext, onBack }: Props) {
+  const [rncStatus, setRncStatus]  = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [rncName,   setRncName]    = useState('');
+
   function handleName(val: string) {
     const slug = val.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9\s-]/g, '')
       .trim().replace(/\s+/g, '-');
     onUpdate({ name: val, slug });
+  }
+
+  async function handleRncBlur() {
+    setRncName('');
+    if (!data.rnc.trim()) { setRncStatus('idle'); return; }
+    if (!validarRNCOCedula(data.rnc)) { setRncStatus('invalid'); return; }
+
+    setRncStatus('checking');
+    try {
+      const res = await fetch(`/api/validate-rnc?number=${encodeURIComponent(data.rnc)}`);
+      const d = await res.json();
+      if (d.valid) {
+        setRncStatus('valid');
+        setRncName(d.name ?? '');
+      } else {
+        setRncStatus('invalid');
+      }
+    } catch {
+      // Si la consulta a la DGII falla (red, mantenimiento), no bloqueamos el
+      // wizard \u2014 solo se pierde el autocompletado/confirmaci\u00f3n visual.
+      setRncStatus('idle');
+    }
   }
 
   const canNext = data.name.trim().length >= 3 && data.slug.length >= 2;
@@ -52,10 +79,20 @@ export function Step4Branding({ data, onUpdate, onNext, onBack }: Props) {
           <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             RNC (opcional)
           </label>
-          <input value={data.rnc} onChange={e => onUpdate({ rnc: e.target.value })}
+          <input value={data.rnc} onChange={e => { onUpdate({ rnc: e.target.value }); setRncStatus('idle'); }}
+            onBlur={handleRncBlur}
             placeholder="101-23456-7"
-            style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '10px 14px', color: '#F8FAFC', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace' }}
+            style={{ width: '100%', background: 'rgba(255,255,255,.06)', border: `1px solid ${rncStatus === 'invalid' ? '#EF4444' : rncStatus === 'valid' ? '#10B981' : 'rgba(255,255,255,.12)'}`, borderRadius: 10, padding: '10px 14px', color: '#F8FAFC', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace' }}
           />
+          {rncStatus === 'checking' && (
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,.4)', marginTop: 5 }}>Verificando con la DGII...</p>
+          )}
+          {rncStatus === 'valid' && (
+            <p style={{ fontSize: '0.68rem', color: '#34D399', marginTop: 5 }}>✓ RNC válido{rncName ? ` — ${rncName}` : ''}</p>
+          )}
+          {rncStatus === 'invalid' && (
+            <p style={{ fontSize: '0.68rem', color: '#F87171', marginTop: 5 }}>No se pudo verificar este RNC. Revisa el número.</p>
+          )}
         </div>
 
         {/* Teléfono y email en grid */}

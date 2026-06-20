@@ -88,6 +88,7 @@ export interface Company {
 
   // Plantilla e industria
   templateId:  TemplateId;
+  businessKind: BusinessKind; // vende productos, servicios, o ambos — define los módulos automáticos
 
   // Módulos activos
   modules:     ModuleId[];
@@ -156,60 +157,59 @@ export interface Company {
 export interface PricingConfig {
   basePrice:        number;   // precio base mensual
   pricePerUser:     number;   // por usuario adicional (después del 1ro)
-  modulesPricing: Record<ModuleId, number>;
   reactivationFee:  number;   // tarifa por reactivar +30 días inactivo
 }
 
 export const PRICING: PricingConfig = {
   basePrice:    800,          // RD$800/mes base (incluye 1 usuario)
   pricePerUser: 150,          // RD$150 por usuario extra
-  modulesPricing: {
-    pos:                  0,  // incluido en base
-    inventory:            0,  // incluido en base
-    quotes:               0,  // incluido en base
-    reports:              0,  // incluido en base
-    ecf:                300,  // +RD$300 facturación electrónica DGII
-    clients:            150,  // +RD$150 CRM básico
-    purchases:          200,  // +RD$200 módulo compras
-    accounts_receivable:200,  // +RD$200 cuentas por cobrar
-    multi_warehouse:    300,  // +RD$300 multi almacén
-  },
   reactivationFee: 500,       // RD$500 tarifa de reactivación
 };
 
-// ── Función: calcular precio ─────────────────────────────────
-export function calculatePrice(modules: ModuleId[], users: number): number {
-  const base     = PRICING.basePrice;
-  const extraUsers = Math.max(0, users - 1) * PRICING.pricePerUser;
-  const moduleCost = modules.reduce(
-    (sum, m) => sum + (PRICING.modulesPricing[m] ?? 0), 0
-  );
-  return base + extraUsers + moduleCost;
+// ── Módulos automáticos según el negocio ──────────────────────
+// El e-CF está estandarizado: todo negocio recibe el mismo núcleo fiscal. Lo
+// único que varía es si necesita POS + inventario (vende productos) o no
+// (solo servicios) — ya no se elige módulo por módulo en el wizard.
+export type BusinessKind = 'productos' | 'servicios' | 'ambos';
+
+const CORE_MODULES: ModuleId[]    = ['ecf', 'quotes', 'reports', 'clients', 'accounts_receivable'];
+const PRODUCT_MODULES: ModuleId[] = ['pos', 'inventory', 'purchases', 'multi_warehouse'];
+
+export function getModulesForBusiness(kind: BusinessKind): ModuleId[] {
+  return kind === 'servicios' ? CORE_MODULES : [...CORE_MODULES, ...PRODUCT_MODULES];
 }
 
 // ── Planes por volumen de comprobantes ───────────────────────
 // Cada plan incluye un límite de comprobantes (facturas/ventas) por mes. Si
 // la empresa lo supera, cada comprobante extra genera un cargo (overageRate)
-// que se aplica automáticamente al ciclo siguiente de PayPal.
+// que se aplica automáticamente al ciclo siguiente de PayPal. El cliente
+// elige el plan directamente (no se calcula a partir de módulos).
 export type PlanId = 'starter' | 'pro' | 'business' | 'enterprise';
 
 export interface PlanTier {
   id:               PlanId;
   name:             string;
-  maxPrice:         number;   // precio (RD$/mes) máximo para entrar en este tier
+  price:            number;   // precio fijo (RD$/mes, incluye 1 usuario)
+  maxPrice:         number;   // límite superior histórico — usado por getPlanTier()
   comprobanteLimit: number;   // comprobantes incluidos por mes
   overageRate:      number;   // RD$ por comprobante extra
 }
 
 export const PLAN_TIERS: PlanTier[] = [
-  { id: 'starter',    name: 'Starter',    maxPrice: 1200,     comprobanteLimit: 500,  overageRate: 6 },
-  { id: 'pro',        name: 'Pro',        maxPrice: 2200,     comprobanteLimit: 1000, overageRate: 5 },
-  { id: 'business',   name: 'Business',   maxPrice: 3800,     comprobanteLimit: 3000, overageRate: 4 },
-  { id: 'enterprise', name: 'Enterprise', maxPrice: Infinity, comprobanteLimit: 8000, overageRate: 3 },
+  { id: 'starter',    name: 'Starter',    price: 800,  maxPrice: 1200,     comprobanteLimit: 500,  overageRate: 6 },
+  { id: 'pro',        name: 'Pro',        price: 1550, maxPrice: 2200,     comprobanteLimit: 1000, overageRate: 5 },
+  { id: 'business',   name: 'Business',   price: 2450, maxPrice: 3800,     comprobanteLimit: 3000, overageRate: 4 },
+  { id: 'enterprise', name: 'Enterprise', price: 3800, maxPrice: Infinity, comprobanteLimit: 8000, overageRate: 3 },
 ];
 
 export function getPlanTier(monthlyPrice: number): PlanTier {
   return PLAN_TIERS.find(t => monthlyPrice <= t.maxPrice) ?? PLAN_TIERS[PLAN_TIERS.length - 1];
+}
+
+// Precio mensual de un plan elegido directamente (wizard) + usuarios extra.
+export function calculatePlanPrice(planId: PlanId, users: number): number {
+  const tier = PLAN_TIERS.find(t => t.id === planId) ?? PLAN_TIERS[0];
+  return tier.price + Math.max(0, users - 1) * PRICING.pricePerUser;
 }
 
 // ── Templates de industria ───────────────────────────────────
@@ -218,8 +218,10 @@ export interface Template {
   name:            string;
   description:     string;
   icon:            string;
-  defaultModules:  ModuleId[];
   color:           string;
+  // Sugerencia por defecto de si este negocio vende productos, servicios o
+  // ambos — el cliente puede confirmarlo/cambiarlo en el wizard.
+  businessKind:    BusinessKind;
   // Cómo se le llama a un "producto" en este tipo de negocio (ej. "Medicamento"
   // en farmacia, "Plato" en restaurante) — usado en POS, inventario, productos.
   productLabel:    { singular: string; plural: string };
@@ -229,24 +231,24 @@ export interface Template {
 }
 
 export const TEMPLATES: Template[] = [
-  { id: 'pharmacy',   name: 'Farmacia',      icon: '💊', color: '#10B981', description: 'Lote, vencimiento, INVIMA',        defaultModules: ['pos','inventory','clients','reports'],
+  { id: 'pharmacy',   name: 'Farmacia',      icon: '💊', color: '#10B981', description: 'Lote, vencimiento, INVIMA',        businessKind: 'productos',
     productLabel: { singular: 'Medicamento', plural: 'Medicamentos' }, unitIds: ['unidad','caja','paquete'] },
-  { id: 'workshop',   name: 'Taller',        icon: '🔧', color: '#F59E0B', description: 'Órdenes de trabajo, mecánicos',    defaultModules: ['pos','quotes','clients','reports'],
+  { id: 'workshop',   name: 'Taller',        icon: '🔧', color: '#F59E0B', description: 'Órdenes de trabajo, mecánicos',    businessKind: 'servicios',
     productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora','unidad'] },
-  { id: 'restaurant', name: 'Restaurante',   icon: '🍽️', color: '#EF4444', description: 'Mesas, cocina, delivery',          defaultModules: ['pos','inventory','reports'],
+  { id: 'restaurant', name: 'Restaurante',   icon: '🍽️', color: '#EF4444', description: 'Mesas, cocina, delivery',          businessKind: 'ambos',
     productLabel: { singular: 'Plato', plural: 'Platos' }, unitIds: ['unidad','servicio','litro'] },
-  { id: 'grocery',    name: 'Colmado',       icon: '🏪', color: '#8B5CF6', description: 'POS rápido, fiado, inventario',    defaultModules: ['pos','inventory','reports'],
+  { id: 'grocery',    name: 'Colmado',       icon: '🏪', color: '#8B5CF6', description: 'POS rápido, fiado, inventario',    businessKind: 'productos',
     productLabel: { singular: 'Producto', plural: 'Productos' }, unitIds: ['unidad','lb','kg','litro','galon','caja','paquete'] },
-  { id: 'clinic',     name: 'Clínica',       icon: '🏥', color: '#0EA5E9', description: 'Pacientes, citas, NCF',            defaultModules: ['pos','clients','ecf','reports'],
+  { id: 'clinic',     name: 'Clínica',       icon: '🏥', color: '#0EA5E9', description: 'Pacientes, citas, NCF',            businessKind: 'servicios',
     productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora','unidad'] },
-  { id: 'boutique',   name: 'Boutique',      icon: '👗', color: '#D4537E', description: 'Tallas, colores, temporadas',      defaultModules: ['pos','inventory','clients','reports'],
+  { id: 'boutique',   name: 'Boutique',      icon: '👗', color: '#D4537E', description: 'Tallas, colores, temporadas',      businessKind: 'productos',
     productLabel: { singular: 'Prenda', plural: 'Prendas' }, unitIds: ['unidad','par','docena'] },
-  { id: 'hardware',   name: 'Ferretería',    icon: '🏗️', color: '#92400E', description: 'Inventario amplio, unidades',      defaultModules: ['pos','inventory','purchases','reports'],
+  { id: 'hardware',   name: 'Ferretería',    icon: '🏗️', color: '#92400E', description: 'Inventario amplio, unidades',      businessKind: 'ambos',
     productLabel: { singular: 'Material', plural: 'Materiales' }, unitIds: ['unidad','metro','pie','lb','kg','galon','litro','caja','rollo'] },
-  { id: 'bookstore',  name: 'Librería',      icon: '📚', color: '#1D4ED8', description: 'ISBN, editoriales, consignación',  defaultModules: ['pos','inventory','reports'],
+  { id: 'bookstore',  name: 'Librería',      icon: '📚', color: '#1D4ED8', description: 'ISBN, editoriales, consignación',  businessKind: 'productos',
     productLabel: { singular: 'Libro', plural: 'Libros' }, unitIds: ['unidad','docena','caja'] },
-  { id: 'salon',      name: 'Salón de belleza', icon: '💈', color: '#BE185D', description: 'Servicios, citas, comisiones', defaultModules: ['pos','clients','quotes','reports'],
+  { id: 'salon',      name: 'Salón de belleza', icon: '💈', color: '#BE185D', description: 'Servicios, citas, comisiones', businessKind: 'servicios',
     productLabel: { singular: 'Servicio', plural: 'Servicios' }, unitIds: ['servicio','hora'] },
-  { id: 'custom',     name: 'Personalizado', icon: '⚙️', color: '#6B7280', description: 'Configura desde cero',             defaultModules: ['pos','inventory'],
+  { id: 'custom',     name: 'Personalizado', icon: '⚙️', color: '#6B7280', description: 'Configura desde cero',             businessKind: 'ambos',
     productLabel: { singular: 'Producto', plural: 'Productos' }, unitIds: [] },
 ];
